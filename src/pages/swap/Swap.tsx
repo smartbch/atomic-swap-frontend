@@ -19,15 +19,16 @@ import CONFIG from '../../CONFIG';
 import { getProvider } from '../../utils/web3';
 import { useStore } from '../../common/store';
 
-
+type BotMarketMaker = MarketMaker & { BCHBalance: string, SBCHBalance: string }
 
 const Swap: React.FC = () => {
-    const {state,setStoreItem} = useStore()
-    const [marketMakers, setMarketMakers] = useState<(MarketMaker & { BCHBalance: string, SBCHBalance: string })[]>([])
+    const { state, setStoreItem } = useStore()
+    const [marketMakers, setMarketMakers] = useState<(BotMarketMaker[])>([])
     const [direction, setDirection] = useState<SwapDriection>(SwapDriection.Sbch2Bch)
     useEffect(() => {
         const fetch = async () => {
             const marketMakers = await getMarketMakers()
+            console.log("marketMakers", marketMakers)
             const provider = getProvider()
             const [SBCHBalances, BCHBalances]: any = await Promise.all([
                 Promise.all(marketMakers.map((v) => provider.getBalance(v.addr).then(ethers.utils.formatEther))),
@@ -52,19 +53,19 @@ const Swap: React.FC = () => {
         if (values.amount < 0.0001) {
             throw new Error('Amount must larger than 0.0001')
         }
-        const marketMaker: MarketMaker = marketMakers.find((x: any) => x.addr === values.marketMakerAddr)!
+        const marketMaker = marketMakers.find((x: any) => x.addr === values.marketMakerAddr)!
         if (values.amount < Number(marketMaker.minSwapAmt)) {
             throw new Error(`Amount must larger than ${marketMaker.minSwapAmt}`)
         }
-        if (values.amount > parseFloat(marketMaker.maxSwapAmt)) {
+        if (values.amount > Number(marketMaker.maxSwapAmt)) {
             throw new Error(`Amount must less than ${marketMaker.maxSwapAmt}`)
         }
         if (values.direction === SwapDriection.Sbch2Bch) {
-            if (values.amount > (marketMaker as any).BCHBalance) {
-                throw new Error("Insufficient balance ")
+            if (values.amount > Number((marketMaker as any).BCHBalance)) {
+                throw new Error("Insufficient balance")
             }
         } else {
-            if (values.amount > (marketMaker as any).SBCHBalance) {
+            if (values.amount > Number((marketMaker as any).SBCHBalance)) {
                 throw new Error("Insufficient balance")
             }
         }

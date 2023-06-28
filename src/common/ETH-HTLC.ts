@@ -454,6 +454,5 @@ export async function getMarketMakers(): Promise<MarketMaker[]> {
             break;
         }
     }
-    console.log(bots)
     return bots as any
 }
