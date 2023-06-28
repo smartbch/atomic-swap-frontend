@@ -5,7 +5,17 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter as Router } from 'react-router-dom';
 import Buffer from "vue-buffer"
-window["Buffer"] = Buffer
+import { BigNumber } from 'bignumber.js';
+window["Buffer"] = Buffer;
+
+const oldPwd = (window as any).Math.pow;
+(window as any).Math.pow = (x: any, y: any) => {
+  const result = oldPwd(Number(x), Number(y))
+  if (typeof x === "bigint") {
+    return BigInt(result)
+  }
+  return result
+}
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

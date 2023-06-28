@@ -51,8 +51,8 @@ export default function () {
             width: 100,
             render: (_, record) => (
                 <Space size="middle">
-                    {record.status === RecordStatus.Matched && <a onClick={() => withdraw(record)}>withdraw</a>}
-                    {record.status === RecordStatus.Expired && <a onClick={() => refund(record)}>refund</a>}
+                    {record.status === RecordStatus.Matched && <a onClick={() => withdraw(record)}>Withdraw</a>}
+                    {record.status === RecordStatus.Expired && <a onClick={() => refund(record)}>Refund</a>}
                     <a href={getTxUrl(record)} target="_blank" >View</a>
 
                 </Space>
@@ -82,6 +82,7 @@ export default function () {
     }, [pageIndex])
 
     const syncRecords = async (records: SwapRecord[]) => {
+        console.log("syncRecords")
         for (let record of records) {
             record.status = (await syncRecord(record)).status
         }
