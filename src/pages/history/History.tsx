@@ -154,5 +154,7 @@ export default function () {
         }
     }
 
-    return <Table columns={columns} rowKey="hashLock" dataSource={list} pagination={{ total, pageSize: 20, current: pageIndex, onChange: (page, _) => setPageIndex(page) }} />
+    return <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
+        <Table columns={columns} rowKey="hashLock" dataSource={list} pagination={{ total, pageSize: 20, current: pageIndex, onChange: (page, _) => setPageIndex(page) }} />
+    </div>
 }

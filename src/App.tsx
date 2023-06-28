@@ -66,35 +66,29 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Layout>
-      <Sider
-        breakpoint="lg"
-        collapsedWidth="0"
-      >
-        <div style={{ height: 50 }} >LOGO</div>
-        <Menu
-          onSelect={(({ key }) => navigate(routes.find(x => x.path === key)!.path))}
-          theme="dark"
-          mode="inline"
-          defaultSelectedKeys={[window.location.pathname]}
-          items={routes.map(({ icon, path, title }) => ({ key: path, icon, label: title }))}
-        />
-      </Sider>
+    <>
       <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer, display: "flex", alignItems: "center" }} >
+        <Header style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="demo-logo" />
+          <Menu
+            onSelect={(({ key }) => navigate(routes.find(x => x.path === key)!.path))}
+            theme="dark"
+            mode="horizontal"
+            defaultSelectedKeys={[window.location.pathname]}
+            items={routes.map(({ icon, path, title }) => ({ key: path, icon, label: title }))}
+          />
           <div style={{ flex: 1 }} />
-          <Button style={{ marginRight: 20 }}> {gloabalStore.account}</Button>
+          <Button type="link" style={{ marginRight: 20 }}> {gloabalStore.account}</Button>
         </Header>
-        <Content style={{ margin: '24px 16px 0' }}>
-          <div style={{ padding: 24, minHeight: "calc(100vh - 153px)", background: colorBgContainer }}>
-            <Routes>
-              {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
-            </Routes>
-          </div>
+
+        <Content style={{ minHeight: "calc(100vh - 150px)", background: colorBgContainer, padding: '0 50px' }} >
+          <Routes>
+            {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
+          </Routes>
         </Content>
         <Footer style={{ textAlign: 'center' }}>Automic-swap ©2023 Created by SmartBCH</Footer>
       </Layout>
-    </Layout>
+    </>
   );
 };
 

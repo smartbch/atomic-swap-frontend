@@ -135,7 +135,7 @@ export default function () {
     }
 
     return (
-        <div>
+        <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
             <Form
                 onFinish={onFinish}
                 form={form}

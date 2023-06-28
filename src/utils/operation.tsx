@@ -1,5 +1,7 @@
 import modal from "antd/es/modal";
 import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { useCallback } from "react";
+import { notification } from "antd";
 
 export async function confirmOperation(params: { title?: string, content?: string }) {
     return new Promise((resolve, reject) => {
@@ -11,4 +13,37 @@ export async function confirmOperation(params: { title?: string, content?: strin
             onCancel: () => { reject(new Error("User cancel confirm")); return false },
         });
     })
-} 
+}
+
+
+export function wrapOperation(fn: any, successMsg: string) {
+    return async (...args: any) => {
+        try {
+            await fn(...args)
+            closeLoading()
+            notification.success({ message: 'success', description: "Success pay" });
+        } catch (error: any) {
+            console.log(error)
+            closeLoading()
+            notification.error({
+                message: 'error',
+                description: error.message
+            });
+        }
+    }
+
+}
+
+
+export function showLoading() {
+    const target = document.createElement('div');
+    target.id = "Loading"
+    target.innerHTML = `<div style="z-index: 20001; position: fixed; inset: 0px; background: rgba(0, 0, 0, 0.45); text-align: center;"><svg viewBox="0 0 50 50" style="margin-top: calc(50vh - 60px); width: 50px; height: 50px; animation: 2s linear 0s infinite normal none running loading-rotate;"><circle cx="25" cy="25" r="20" fill="none" style="stroke: rgb(22, 119, 255); stroke-linecap: round; animation: 1.5s ease-in-out 0s infinite normal none running loading-dash; stroke-dasharray: 90, 150; stroke-dashoffset: 0; stroke-width: 2;"></circle></svg><p style="color: rgb(22, 119, 255);">Loading</p></div>`;
+    document.body.append(target)
+}
+
+export function closeLoading() {
+    const ele = document.querySelector("#Loading")
+    ele && ele.remove()
+
+}

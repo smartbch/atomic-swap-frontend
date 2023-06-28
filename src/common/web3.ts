@@ -1,4 +1,5 @@
-import { setupNetwork } from "../utils/web3"
+import { ethers } from "ethers"
+import { getProvider, setupNetwork } from "../utils/web3"
 import CONFIG from "./../CONFIG"
 
 export async function setupSmartBCHNetwork() {
