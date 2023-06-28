@@ -76,18 +76,15 @@ export default function () {
             const account = await getAccount()
             const records = await queryRecords(account, pageIndex)
             setList(records)
-            syncRecords(records)
+
+            console.log("syncRecords", records)
+            for (let record of records) {
+                record.status = (await syncRecord(record)).status
+            }
+            setList([...records])
         }
         fetch()
     }, [pageIndex])
-
-    const syncRecords = async (records: SwapRecord[]) => {
-        console.log("syncRecords")
-        for (let record of records) {
-            record.status = (await syncRecord(record)).status
-        }
-        setList([...records])
-    }
 
     const getTxUrl = (record: SwapRecord) => {
         if (record.direction === SwapDriection.Sbch2Bch) {
@@ -95,11 +92,6 @@ export default function () {
         }
         return (CONFIG.MAINNET ? "https://blockchair.com/bitcoin-cash/transaction/" : "https://chipnet.imaginary.cash/tx/") + record.openTxId;
     }
-
-    useEffect(() => {
-        const timer = setInterval(() => () => syncRecords(list), 20000);
-        return () => clearInterval(timer);
-    }, []);
 
 
     const withdraw = wrapOperation(async (record: SwapRecord) => {
