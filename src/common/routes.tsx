@@ -10,24 +10,24 @@ export const routes = [
         path: "/",
         element: <User />,
         icon: <SwapOutlined />,
-        title: "swap"
+        title: "Swap"
     },
     {
         path: "/history",
         element: <History />,
         icon: <HistoryOutlined />,
-        title: "history"
+        title: "History"
     },
     {
         path: "/bot",
         element: <Bot />,
         icon: <SettingOutlined />,
-        title: "bot"
+        title: "Bot"
     },
     {
         path: "/wallet",
         element: <Wallet />,
         icon: <WalletOutlined />,
-        title: "wallet"
+        title: "Wallet"
     },
 ]
