@@ -99,7 +99,7 @@ export default function () {
     }, "setUnavailable success")
 
     return (
-        <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
+        <div style={{ width: 600, margin: "0 auto", marginTop: 50 }}>
             <Card title="Base" bordered={false}>
                 <Form
                     onFinish={onFinish}

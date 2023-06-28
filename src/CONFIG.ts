@@ -1,4 +1,4 @@
 export default {
-    AtomicSwapEther_Address: "0x35189A2DdF5f83Cd5292F6707d0605a9487A1CA7",
+    AtomicSwapEther_Address: "0x3246D84c930794cDFAABBab954BAc58A7c08b4cd",
     MAINNET: false,
 }
