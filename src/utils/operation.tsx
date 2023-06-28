@@ -21,7 +21,7 @@ export function wrapOperation(fn: any, successMsg: string) {
         try {
             await fn(...args)
             closeLoading()
-            notification.success({ message: 'success', description: "Success pay" });
+            notification.success({ message: 'success', description: successMsg });
         } catch (error: any) {
             console.log(error)
             closeLoading()

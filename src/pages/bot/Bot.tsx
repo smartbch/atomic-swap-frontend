@@ -4,6 +4,10 @@ import { getAtomicSwapEther } from "../../common/ETH-HTLC";
 import { getAccount } from "../../utils/web3";
 import { ethers } from "ethers";
 import dayjs from 'dayjs';
+import { cashAddrToPkh, pkhToCashAddr } from "../../lib/common";
+import { Mainnet } from "mainnet-js";
+import CONFIG from "../../CONFIG";
+import { showLoading, wrapOperation } from "../../utils/operation";
 
 // const DatePicker = DatePicker_.generatePicker<Moment>(momentGenerateConfig);
 
@@ -12,7 +16,7 @@ export default function () {
         addr: string,
         retiredAt: any,
         intro: string,
-        bchPkh: string,
+        botAddr: string,
         bchLockTime: string, // in blocks
         sbchLockTime: string,// in seconds
         penaltyBPS: string,
@@ -29,9 +33,9 @@ export default function () {
             if (marketMaker.addr !== ethers.constants.AddressZero) {
                 form.setFieldsValue({
                     addr: marketMaker.addr,
-                    retiredAt: dayjs(marketMaker.retiredAt.toNumber()),
+                    retiredAt: marketMaker.retiredAt.toNumber(),
                     intro: ethers.utils.parseBytes32String(marketMaker.intro),
-                    bchPkh: marketMaker.bchPkh,
+                    botAddr: pkhToCashAddr(marketMaker.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet"),
                     bchLockTime: marketMaker.bchLockTime,
                     sbchLockTime: marketMaker.sbchLockTime,
                     penaltyBPS: marketMaker.penaltyBPS,
@@ -46,96 +50,53 @@ export default function () {
         init()
     }, [])
 
-    const onFinish = async () => {
+    const onFinish = wrapOperation(async () => {
+        showLoading()
         const values = form.getFieldsValue()
-        try {
-            const atomicSwapEther = await getAtomicSwapEther()
-            const tx = await atomicSwapEther.registerMarketMaker(
-                ethers.utils.formatBytes32String(values.intro), values.bchPkh,
-                values.bchLockTime, values.sbchLockTime, values.penaltyBPS, values.feeBPS,
-                ethers.utils.parseEther(values.minSwapAmt), ethers.utils.parseEther(values.maxSwapAmt),
-                values.statusChecker
-            )
-            await tx.wait()
-            form.setFieldsValue({ addr: await getAccount() })
-            setHasCreated(true)
-            notification.success({
-                message: 'success',
-                description: "Register pay"
-            });
-        } catch (error: any) {
-            console.log(error)
-            notification.error({
-                message: 'error',
-                description: error.message
-            });
-        }
-    }
+        const atomicSwapEther = await getAtomicSwapEther()
+        const tx = await atomicSwapEther.registerMarketMaker(
+            ethers.utils.formatBytes32String(values.intro), `0x${cashAddrToPkh(values.botAddr)}`,
+            values.bchLockTime, values.sbchLockTime, values.penaltyBPS, values.feeBPS,
+            ethers.utils.parseEther(values.minSwapAmt), ethers.utils.parseEther(values.maxSwapAmt),
+            values.statusChecker
+        )
+        await tx.wait()
+        form.setFieldsValue({ addr: await getAccount() })
+        setHasCreated(true)
+    }, "Register success")
 
-    const updateInfo = async () => {
-        try {
-            // update
-            const atomicSwapEther = await getAtomicSwapEther()
-            const tx = await atomicSwapEther.updateMarketMaker(ethers.utils.formatBytes32String(form.getFieldsValue().intro));
-            await tx.wait()
-            notification.success({
-                message: 'success',
-                description: "Update info success"
-            });
-        } catch (error: any) {
-            console.log(error)
-            notification.error({
-                message: 'error',
-                description: error.message
-            });
-        }
-    }
+    const updateInfo = wrapOperation(async () => {
+        showLoading()
+        // update
+        const atomicSwapEther = await getAtomicSwapEther()
+        const tx = await atomicSwapEther.updateMarketMaker(ethers.utils.formatBytes32String(form.getFieldsValue().intro));
+        await tx.wait()
+    }, "Update info success")
 
-    const retireMarketMaker = async () => {
-        try {
-            // update
-            const atomicSwapEther = await getAtomicSwapEther()
-            const tx = await atomicSwapEther.retireMarketMaker(form.getFieldsValue().retiredAt.unix().toString());
-            await tx.wait()
-            notification.success({
-                message: 'success',
-                description: "Retire success"
-            });
-        } catch (error: any) {
-            console.log(error)
-            notification.error({
-                message: 'error',
-                description: error.message
-            });
-        }
-    }
+    const retireMarketMaker = wrapOperation(async () => {
+        showLoading()
+        // update
+        const atomicSwapEther = await getAtomicSwapEther()
+        const tx = await atomicSwapEther.retireMarketMaker(form.getFieldsValue().retiredAt.unix().toString());
+        await tx.wait()
+    }, "Retire success")
+
 
     const [hasCreated, setHasCreated] = useState(false)
 
     const [unavailableForm] = Form.useForm<{
         marketMaker: string,
-        b: string
+        unavailable: string
     }>();
-    const setUnavailable = async () => {
+    const setUnavailable = wrapOperation(async () => {
+        showLoading()
         const values = unavailableForm.getFieldsValue()
-        try {
-            const atomicSwapEther = await getAtomicSwapEther()
-            const tx = await atomicSwapEther.setUnavailable(
-                values.marketMaker, values.b
-            )
-            await tx.wait()
-            notification.success({
-                message: 'success',
-                description: "setUnavailable success"
-            });
-        } catch (error: any) {
-            console.log(error)
-            notification.error({
-                message: 'error',
-                description: error.message
-            });
-        }
-    }
+        const atomicSwapEther = await getAtomicSwapEther()
+        const tx = await atomicSwapEther.setUnavailable(
+            values.marketMaker, values.unavailable
+        )
+        await tx.wait()
+    }, "setUnavailable success")
 
     return (
         <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
@@ -151,10 +112,14 @@ export default function () {
                 >
                     <Form.Item name="intro" label="Intro"
                         rules={[{ required: true, message: 'intro is required' }]} >
-                        <Input suffix={<Button disabled={!hasCreated} onClick={updateInfo}>Update</Button>} />
+                        <Input suffix={hasCreated && <Button type="primary" onClick={updateInfo}>Update</Button>} />
                     </Form.Item>
-                    <Form.Item name="bchPkh" label="Bch Pkh"
-                        rules={[{ required: true, message: 'bchPkh is required' }]} >
+                    {hasCreated && <Form.Item name="retiredAt" label="Retired Time(seconds)"
+                        rules={[{ required: true, message: 'intro is required' }]} >
+                        <Input disabled={!!form.getFieldValue("retiredAt")} suffix={!form.getFieldValue("retiredAt") && <Button type="primary" onClick={retireMarketMaker}>Update</Button>} />
+                    </Form.Item>}
+                    <Form.Item name="botAddr" label="Bot Address"
+                        rules={[{ required: true, message: 'botAddr is required' }]} >
                         <Input disabled={hasCreated} />
                     </Form.Item>
                     <Form.Item name="bchLockTime" label="Bch LockTime(blocks)"
@@ -177,13 +142,13 @@ export default function () {
                         rules={[{ required: true, message: 'minSwapAmt is required' }]} >
                         <Input disabled={hasCreated} />
                     </Form.Item>
-                    <Form.Item name="maxSwapAmt" label="Min swap amount"
+                    <Form.Item name="maxSwapAmt" label="Max swap amount"
                         rules={[{ required: true, message: 'maxSwapAmt is required' }]} >
                         <Input disabled={hasCreated} />
                     </Form.Item>
                     <Form.Item name="statusChecker" label="Status checker"
                         rules={[{ required: true, message: 'statusChecker is required' }]} >
-                        <Input />
+                        <Input disabled={hasCreated} />
                     </Form.Item>
                     {!hasCreated && <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
                         <Button type="primary" htmlType="submit">
@@ -192,7 +157,7 @@ export default function () {
                     </Form.Item>}
                 </Form >
             </Card>
-            {hasCreated && <Card title="RetiredAt" bordered={false} >
+            {/* {hasCreated && <Card title="RetiredAt" bordered={false} >
                 <Form
                     form={form}
                     labelCol={{ span: 8 }}
@@ -214,10 +179,11 @@ export default function () {
                         </Button>
                     </Form.Item>
                 </Form>
-            </Card>}
+            </Card>} */}
 
-            <Card title="SetAvailable" bordered={false} >
+            <Card title="Set Unavailable" bordered={false} >
                 <Form
+                    initialValues={{ unavailable: false }}
                     form={unavailableForm}
                     labelCol={{ span: 8 }}
                     wrapperCol={{ span: 16 }}
@@ -229,8 +195,8 @@ export default function () {
                         rules={[{ required: true, message: 'marketMaker is required' }]} >
                         <Input />
                     </Form.Item>
-                    <Form.Item name="b" label="b"
-                        rules={[{ required: true, message: 'b is required' }]} >
+                    <Form.Item name="unavailable" label="unavailable"
+                        rules={[{ required: true, message: 'unavailable is required' }]} >
                         <Switch />
                     </Form.Item>
                     <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
