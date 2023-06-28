@@ -61,11 +61,11 @@ const Swap: React.FC = () => {
         }
         if (values.direction === SwapDriection.Sbch2Bch) {
             if (values.amount > (marketMaker as any).BCHBalance) {
-                throw new Error("insufficient balance ")
+                throw new Error("Insufficient balance ")
             }
         } else {
             if (values.amount > (marketMaker as any).SBCHBalance) {
-                throw new Error("insufficient balance")
+                throw new Error("Insufficient balance")
             }
         }
         const receivedAmount = BigNumber(ethers.utils.parseEther(values.amount.toString()).mul(10000 - marketMaker.feeBPS).div(10000).toString()).div(ethers.constants.WeiPerEther.toString()).toString()
@@ -99,7 +99,7 @@ const Swap: React.FC = () => {
             const txId = await wallet.submitTransaction(hexToBin(signedTx))
             await updateRecord(recordId, { openTxId: txId, status: RecordStatus.New })
         }
-    }, "Success pay")
+    }, "Payment successful")
 
     return (
         <div style={{ marginTop: 50 }}>

@@ -121,7 +121,7 @@ export default function () {
             setList([...list])
             await updateRecord(record.id, { status: RecordStatus.Completed, closeTxId: txid })
         }
-    }, "Withdraw success")
+    }, "Withdraw successful")
 
     const refund = wrapOperation(async (record: SwapRecord) => {
         showLoading()
@@ -143,7 +143,7 @@ export default function () {
             setList([...list])
             await updateRecord(record.id, { status: RecordStatus.Refunded })
         }
-    }, "Refund success")
+    }, "Refund successful")
 
     return <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
         <Table columns={columns} rowKey="hashLock" dataSource={list} pagination={{ total, pageSize: 20, current: pageIndex, onChange: (page, _) => setPageIndex(page) }} />
