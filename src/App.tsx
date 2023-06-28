@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Button, Layout, Menu, notification, theme } from 'antd';
 import { Route, RouterProvider, Routes, createBrowserRouter, useNavigate } from 'react-router-dom';
-import { routes } from './common/router';
+import { routes } from './common/routes';
 import { connect, getAccount, setupNetwork } from './utils/web3';
 import { setupSmartBCHNetwork } from './common/web3';
 import CONFIG from './CONFIG';
@@ -89,7 +89,7 @@ const App: React.FC = () => {
             {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
           </Routes>
         </Content>
-        <Footer style={{ textAlign: 'center' }}>Automic-swap ©2023 Created by SmartBCH</Footer>
+        <Footer style={{ textAlign: 'center' }}>Atomic-swap ©2023 Created by SmartBCH</Footer>
       </Layout>
     </>
   );

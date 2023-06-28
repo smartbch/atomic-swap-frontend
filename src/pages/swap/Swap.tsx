@@ -21,7 +21,7 @@ import { useStore } from '../../common/store';
 
 
 
-const User: React.FC = () => {
+const Swap: React.FC = () => {
     const {state,setStoreItem} = useStore()
     const [marketMakers, setMarketMakers] = useState<(MarketMaker & { BCHBalance: string, SBCHBalance: string })[]>([])
     const [direction, setDirection] = useState<SwapDriection>(SwapDriection.Sbch2Bch)
@@ -144,4 +144,4 @@ const User: React.FC = () => {
     )
 };
 
-export default User;
+export default Swap;

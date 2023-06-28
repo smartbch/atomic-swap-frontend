@@ -15,6 +15,7 @@ import { signTx } from "../../lib/pay4best";
 import { hexToBin } from "@bitauth/libauth";
 import { showLoading, wrapOperation } from "../../utils/operation";
 import { useStore } from "../../common/store";
+import CONFIG from "../../CONFIG";
 
 export default function () {
     const [list, setList] = useState<SwapRecord[]>([])
@@ -40,17 +41,20 @@ export default function () {
             key: 'status',
         },
         {
-            title: 'CreateAt',
+            title: 'Create Time',
             key: 'createAt',
             render: (_, record) => changeTimestampToDataFormat(record.info.createAt),
         },
         {
             title: 'Action',
             key: 'action',
+            width: 100,
             render: (_, record) => (
                 <Space size="middle">
                     {record.status === RecordStatus.Matched && <a onClick={() => withdraw(record)}>withdraw</a>}
                     {record.status === RecordStatus.Expired && <a onClick={() => refund(record)}>refund</a>}
+                    <a href={getTxUrl(record)} target="_blank" >View</a>
+
                 </Space>
             ),
         },
@@ -82,6 +86,13 @@ export default function () {
             record.status = (await syncRecord(record)).status
         }
         setList([...records])
+    }
+
+    const getTxUrl = (record: SwapRecord) => {
+        if (record.direction === SwapDriection.Sbch2Bch) {
+            return "https://www.smartscan.cash/transaction/" + record.openTxId
+        }
+        return (CONFIG.MAINNET ? "https://blockchair.com/bitcoin-cash/transaction/" : "https://chipnet.imaginary.cash/tx/") + record.openTxId;
     }
 
     useEffect(() => {

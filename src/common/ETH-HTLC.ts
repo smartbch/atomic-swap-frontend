@@ -442,15 +442,14 @@ export async function getMarketMakers(): Promise<MarketMaker[]> {
         try {
             const marketMakerAddr = await htlc.marketMakerAddrs(i);
             const { addr, intro, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, minSwapAmt, maxSwapAmt } = await htlc.marketMakers(marketMakerAddr);
-            // bots.push({
-            //     addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS,
-            //     minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString()
-            // });
-
             bots.push({
-                addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime: 6, sbchLockTime: 3600, penaltyBPS, feeBPS,
-                minSwapAmt: parseFloat(ethers.utils.formatEther(minSwapAmt.toString()).toString()), maxSwapAmt: parseFloat(ethers.utils.formatEther(maxSwapAmt.toString()).toString())
-            }); // debug
+                addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS,
+                minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString()
+            });
+            // bots.push({
+            //     addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime: 6, sbchLockTime: 3600, penaltyBPS, feeBPS,
+            //     minSwapAmt: parseFloat(ethers.utils.formatEther(minSwapAmt.toString()).toString()), maxSwapAmt: parseFloat(ethers.utils.formatEther(maxSwapAmt.toString()).toString())
+            // }); // debug
         } catch (err) {
             break;
         }
