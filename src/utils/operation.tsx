@@ -26,6 +26,7 @@ export function wrapOperation(fn: any, successMsg: string) {
             console.log(error)
             closeLoading()
             notification.error({
+                duration: 0,
                 message: 'error',
                 description: error.message
             });
@@ -45,5 +46,16 @@ export function showLoading() {
 export function closeLoading() {
     const ele = document.querySelector("#Loading")
     ele && ele.remove()
+}
 
+export function copyText(text: string) {
+    let inputDom = document.createElement('input');
+    inputDom.setAttribute('readonly', 'readonly');
+    inputDom.value = text;
+    document.body.appendChild(inputDom);
+    inputDom.select();
+    document.execCommand('Copy');
+    inputDom.style.display = 'none';
+    inputDom.remove();
+    notification.success({ message: 'success', description: "Copy successfully" });
 }

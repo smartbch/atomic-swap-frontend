@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { UploadOutlined, UserOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { Button, Layout, Menu, notification, theme } from 'antd';
 import { Route, RouterProvider, Routes, createBrowserRouter, useNavigate } from 'react-router-dom';
 import { routes } from './common/router';
@@ -7,20 +6,20 @@ import { connect, getAccount, setupNetwork } from './utils/web3';
 import { setupSmartBCHNetwork } from './common/web3';
 import CONFIG from './CONFIG';
 import { getBCHAccount } from './lib/pay4best';
-import { useGloabalStore } from './common/store';
+import { useStore } from './common/store';
 
 const { Header, Content, Footer, Sider } = Layout;
 
 const App: React.FC = () => {
   const [api, contextHolder] = notification.useNotification();
-  const [gloabalStore, setGloabalStoreStoreItem] = useGloabalStore()
+  const {state,setStoreItem} = useStore()
 
   useEffect(() => {
     const init = async () => {
       try {
         await connect()
         await setupSmartBCHNetwork()
-        await setGloabalStoreStoreItem({ account: await getAccount() });
+        await setStoreItem({ account: await getAccount() });
         (window as any).ethereum?.on('accountsChanged', async () => {
           window.location.reload()
         });
@@ -44,7 +43,7 @@ const App: React.FC = () => {
     document.body.appendChild(iframe);
     iframe.onload = async () => {
       try {
-        setGloabalStoreStoreItem({ bchAccount: await getBCHAccount() })
+        setStoreItem({ bchAccount: await getBCHAccount() })
       } catch (error: any) {
         console.log(error)
         api["error"]({
@@ -65,6 +64,10 @@ const App: React.FC = () => {
   } = theme.useToken();
   const navigate = useNavigate();
 
+  if(!state.account) {
+    return <Button onClick={connect}>Connect Wallet</Button>
+  }
+  
   return (
     <>
       <Layout>
@@ -78,7 +81,7 @@ const App: React.FC = () => {
             items={routes.map(({ icon, path, title }) => ({ key: path, icon, label: title }))}
           />
           <div style={{ flex: 1 }} />
-          <Button type="link" style={{ marginRight: 20 }}> {gloabalStore.account}</Button>
+          <Button type="link" style={{ marginRight: 20 }}> {state.account}</Button>
         </Header>
 
         <Content style={{ minHeight: "calc(100vh - 150px)", background: colorBgContainer, padding: '0 50px' }} >

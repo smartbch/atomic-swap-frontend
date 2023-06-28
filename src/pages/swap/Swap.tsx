@@ -9,7 +9,6 @@ import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { confirmOperation, showLoading, wrapOperation } from '../../utils/operation';
 import { HTLC } from '../../lib/HTLC';
 import { cashAddrToPkh, pkhToCashAddr } from '../../lib/common';
-import { useGloabalStore } from '../../common/store';
 import { setupSmartBCHNetwork } from '../../common/web3';
 import { RecordStatus, insertRecord, updateRecord } from '../../common/db';
 import { getWalletClass } from '../../common/bch-wallet';
@@ -18,11 +17,12 @@ import { signTx } from '../../lib/pay4best';
 import { hexToBin } from '@bitauth/libauth';
 import CONFIG from '../../CONFIG';
 import { getProvider } from '../../utils/web3';
+import { useStore } from '../../common/store';
 
 
 
 const User: React.FC = () => {
-    const [gloabalStore, setGloabalStoreStoreItem] = useGloabalStore()
+    const {state,setStoreItem} = useStore()
     const [marketMakers, setMarketMakers] = useState<(MarketMaker & { BCHBalance: string, SBCHBalance: string })[]>([])
     const [direction, setDirection] = useState<SwapDriection>(SwapDriection.Sbch2Bch)
     useEffect(() => {
@@ -73,7 +73,7 @@ const User: React.FC = () => {
         showLoading()
         const secret = Buffer.from(window.crypto.getRandomValues(new Uint8Array(32))).toString('hex')
         const hashLock = `0x${HTLC.getHashLock(secret)}`
-        const walletPkh = await cashAddrToPkh(gloabalStore.bchAccount)
+        const walletPkh = await cashAddrToPkh(state.bchAccount)
         const info = {
             secret, createAt: new Date().getTime(),
             marketMakerAddr: marketMaker.addr, marketMakerBchPkh: marketMaker.bchPkh,
@@ -83,7 +83,7 @@ const User: React.FC = () => {
         if (values.direction === SwapDriection.Sbch2Bch) {
             await setupSmartBCHNetwork()
             const atomicSwapEther = await getAtomicSwapEther()
-            recordId = await insertRecord(gloabalStore.account, SwapDriection.Sbch2Bch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
+            recordId = await insertRecord(state.account, SwapDriection.Sbch2Bch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
             const tx0 = await atomicSwapEther.open(marketMaker.addr, hashLock, marketMaker.sbchLockTime, `0x${walletPkh}`, info.penaltyBPS,
                 { value: ethers.utils.parseEther(values.amount.toString()) })
             await updateRecord(recordId, { openTxId: tx0.hash })
@@ -91,10 +91,10 @@ const User: React.FC = () => {
             await updateRecord(recordId, { status: RecordStatus.New })
         } else {
             const recipientPkh = marketMaker.bchPkh
-            recordId = await insertRecord(gloabalStore.account, SwapDriection.Bch2Sbch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
-            const wallet = await getWalletClass().fromCashaddr(gloabalStore.bchAccount)
+            recordId = await insertRecord(state.account, SwapDriection.Bch2Sbch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
+            const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
             const htclBCH = new HTLC(wallet as any, marketMaker.bchLockTime, info.penaltyBPS)
-            const unSignedTx = await htclBCH.send(pkhToCashAddr(recipientPkh, wallet.network), gloabalStore.account, hashLock, Number(bch2Satoshis(values.amount)), true)
+            const unSignedTx = await htclBCH.send(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), true)
             const signedTx = await signTx(unSignedTx);
             const txId = await wallet.submitTransaction(hexToBin(signedTx))
             await updateRecord(recordId, { openTxId: txId, status: RecordStatus.New })
