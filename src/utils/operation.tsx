@@ -16,12 +16,14 @@ export async function confirmOperation(params: { title?: string, content?: strin
 }
 
 
-export function wrapOperation(fn: any, successMsg: string) {
+export function wrapOperation(fn: any, successMsg: string = '') {
     return async (...args: any) => {
         try {
             await fn(...args)
             closeLoading()
-            notification.success({ message: 'success', description: successMsg });
+            if (successMsg) {
+                notification.success({ message: 'success', description: successMsg });
+            }
         } catch (error: any) {
             console.log(error)
             closeLoading()
