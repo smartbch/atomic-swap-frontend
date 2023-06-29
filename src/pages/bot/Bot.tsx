@@ -122,11 +122,11 @@ export default function () {
                         rules={[{ required: true, message: 'botAddr is required' }]} >
                         <Input disabled={hasCreated} />
                     </Form.Item>
-                    <Form.Item name="bchLockTime" label="Bch LockTime(blocks)"
+                    <Form.Item name="bchLockTime" label="Bch Lock Time(blocks)"
                         rules={[{ required: true, message: 'bchLockTime is required' }]} >
                         <Input disabled={hasCreated} />
                     </Form.Item>
-                    <Form.Item name="sbchLockTime" label="Sbch LockTime(seconds)"
+                    <Form.Item name="sbchLockTime" label="Sbch Lock Time(seconds)"
                         rules={[{ required: true, message: 'sbchLockTime is required' }]} >
                         <Input disabled={hasCreated} />
                     </Form.Item>
@@ -195,7 +195,7 @@ export default function () {
                         rules={[{ required: true, message: 'marketMaker is required' }]} >
                         <Input />
                     </Form.Item>
-                    <Form.Item name="unavailable" label="unavailable"
+                    <Form.Item name="Unavailable" label="unavailable"
                         rules={[{ required: true, message: 'unavailable is required' }]} >
                         <Switch />
                     </Form.Item>
