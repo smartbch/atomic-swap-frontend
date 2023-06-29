@@ -63,16 +63,17 @@ export default function () {
     }
     console.log(form.getFieldsValue().visible)
     return <div style={{ width: 1000, margin: "0 auto", marginTop: 50, fontSize: 20 }}>
-        <div>BchBalance:  {bchBalance} <Button type="primary" style={{ marginLeft: 20 }} onClick={() => { form.setFieldsValue({ visible: true }); setStoreItem({}) }}>Send</Button></div>
-        <div style={{ marginTop: 20 }}>Derived Cash Address: {state.bchAccount}
+        <div>Bch Balance:  {bchBalance} <Button type="primary" style={{ marginLeft: 20 }} onClick={() => { form.setFieldsValue({ visible: true }); setStoreItem({}) }}>Send</Button></div>
+        <div style={{ marginTop: 20 }}>Cash Address: {state.bchAccount}
             <CopyOutlined style={{ cursor: "pointer", fontSize: 20, marginLeft: 10 }} onClick={() => copyText(state.bchAccount)} />
         </div>
         <div>   <QRCode value={state.bchAccount} /></div>
-        <div style={{ marginTop: 20 }}>Derived Legacy Address: {bchaddr.toLegacyAddress(state.bchAccount)}
+        <div style={{ marginTop: 20 }}>Legacy Address: {bchaddr.toLegacyAddress(state.bchAccount)}
             <CopyOutlined style={{ cursor: "pointer", fontSize: 20, marginLeft: 10 }} onClick={() => copyText(bchaddr.toLegacyAddress(state.bchAccount))} />
         </div>
         <div>   <QRCode value={bchaddr.toLegacyAddress(state.bchAccount)} /></div>
 
+        <div style={{ textAlign: "center", marginTop: 30 }}>BCH WALLET SUPPORTED BY <a target="_blank" href="https://pay4.best" >PAY4BEST</a></div>
 
         <Form style={{ display: "none" }} form={form}> <Form.Item name="visible" rules={[{ required: true }]}></Form.Item>  </Form>
         <Modal title="Send BCH" destroyOnClose open={form.getFieldsValue().visible} onOk={transferBCH} onCancel={() => { form.setFieldsValue({ visible: false });; setStoreItem({}) }}>
