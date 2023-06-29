@@ -89,7 +89,7 @@ const App: React.FC = () => {
             {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
           </Routes>
         </Content>
-        <Footer style={{ textAlign: 'center' }}>Atomic-swap ©2023 Created by SmartBCH</Footer>
+        <Footer style={{ textAlign: 'center' }}>AtomicSwap ©2023 Created by SmartBCH</Footer>
       </Layout>
     </>
   );
