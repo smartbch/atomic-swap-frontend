@@ -111,7 +111,7 @@ export default function () {
             const utxo = (await bchContract.getUtxos())[0]
             const { confirmations = 0 } = await (bchContract as any).provider.performRequest("blockchain.transaction.get", utxo.txid, true)
             if (confirmations < 10) {
-                await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized` })
+                await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized. Continue?` })
             }
             showLoading()
             const unSignedTx = await htlcBCH.receive(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, true)

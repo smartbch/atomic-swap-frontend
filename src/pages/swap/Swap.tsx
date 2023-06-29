@@ -70,7 +70,7 @@ const Swap: React.FC = () => {
             }
         }
         const receivedAmount = BigNumber(ethers.utils.parseEther(values.amount.toString()).mul(10000 - marketMaker.feeBPS).div(10000).toString()).div(ethers.constants.WeiPerEther.toString()).toString()
-        await confirmOperation({ content: `You will receive ${receivedAmount} bch` })
+        await confirmOperation({ content: `You will receive ${receivedAmount} bch. Continue?` })
         showLoading()
         const secret = Buffer.from(window.crypto.getRandomValues(new Uint8Array(32))).toString('hex')
         const hashLock = `0x${HTLC.getHashLock(secret)}`
