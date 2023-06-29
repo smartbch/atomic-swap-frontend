@@ -13,7 +13,7 @@ import { HTLC } from "../../lib/HTLC";
 import { pkhToCashAddr } from "../../lib/common";
 import { signTx } from "../../lib/pay4best";
 import { hexToBin } from "@bitauth/libauth";
-import { showLoading, wrapOperation } from "../../utils/operation";
+import { confirmOperation, showLoading, wrapOperation } from "../../utils/operation";
 import { useStore } from "../../common/store";
 import CONFIG from "../../CONFIG";
 
@@ -95,8 +95,8 @@ export default function () {
 
 
     const withdraw = wrapOperation(async (record: SwapRecord) => {
-        showLoading()
         if (record.direction === SwapDriection.Bch2Sbch) {
+            showLoading()
             const contract = await getAtomicSwapEther()
             const tx = await contract.close(record.hashLock, `0x${record.info.secret}`)
             await updateRecord(record.id, { closeTxId: tx.hash })
@@ -106,8 +106,15 @@ export default function () {
             await updateRecord(record.id, { status: RecordStatus.Completed })
         } else {
             const wallet = await getWalletClass().watchOnly(state.bchAccount)
-            const htclBCH = new HTLC(wallet as any, record.marketMaker.bchLockTime / 2, 0)
-            const unSignedTx = await htclBCH.receive(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, true)
+            const htlcBCH = new HTLC(wallet as any, record.marketMaker.bchLockTime / 2, 0)
+            const bchContract = await htlcBCH.createContract(record.marketMaker.bchPkh, record.info.walletPkh, record.hashLock)
+            const utxo = (await bchContract.getUtxos())[0]
+            const { confirmations = 0 } = await (bchContract as any).provider.performRequest("blockchain.transaction.get", utxo.txid, true)
+            if (confirmations < 10) {
+                await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized` })
+            }
+            showLoading()
+            const unSignedTx = await htlcBCH.receive(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, true)
             const signedTx = await signTx(unSignedTx);
             const txid = await wallet.submitTransaction(hexToBin(signedTx))
             record.status = RecordStatus.Completed
@@ -120,8 +127,8 @@ export default function () {
         showLoading()
         if (record.direction === SwapDriection.Bch2Sbch) {
             const wallet = await getWalletClass().watchOnly(state.bchAccount)
-            const htclBCH = new HTLC(wallet as any, record.marketMaker.bchLockTime, record.marketMaker.penaltyBPS)
-            const unSignedTx = await htclBCH.refund(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), record.hashLock, true)
+            const htlcBCH = new HTLC(wallet as any, record.marketMaker.bchLockTime, record.marketMaker.penaltyBPS)
+            const unSignedTx = await htlcBCH.refund(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), record.hashLock, true)
             const signedTx = await signTx(unSignedTx);
             const txid = await wallet.submitTransaction(hexToBin(signedTx))
             record.status = RecordStatus.Refunded

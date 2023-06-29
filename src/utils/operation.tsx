@@ -3,6 +3,8 @@ import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useCallback } from "react";
 import { notification } from "antd";
 
+const CONFIRM_CANCEL = "CONFIRM_CANCEL"
+
 export async function confirmOperation(params: { title?: string, content?: string }) {
     return new Promise((resolve, reject) => {
         modal.confirm({
@@ -10,7 +12,7 @@ export async function confirmOperation(params: { title?: string, content?: strin
             icon: <ExclamationCircleOutlined />,
             content: params.content || 'Confirm',
             onOk: () => { resolve(''); return false },
-            onCancel: () => { reject(new Error("User cancel confirm")); return false },
+            onCancel: () => { reject("CONFIRM_CANCEL"); return false },
         });
     })
 }
@@ -25,6 +27,9 @@ export function wrapOperation(fn: any, successMsg: string = '') {
                 notification.success({ message: 'success', description: successMsg });
             }
         } catch (error: any) {
+            if(error === CONFIRM_CANCEL) {
+                return
+            }
             console.log(error)
             closeLoading()
             notification.error({
