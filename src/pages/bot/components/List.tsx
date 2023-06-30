@@ -34,7 +34,7 @@ export default function () {
 
     const columns: ColumnsType<BotMarketMaker> = [
         {
-            title: 'Address',
+            title: 'EVM Address',
             dataIndex: 'addr',
             key: 'addr',
             fixed: 'left',
@@ -61,7 +61,7 @@ export default function () {
             key: 'SBCHBalance',
         },
         {
-            title: 'Bot Address',
+            title: 'BCH Address',
             dataIndex: 'bchPkh',
             key: 'bchPkh',
             render: (bchPkh) => <Tooltip placement="topLeft" title={pkhToCashAddr(bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet")}>
