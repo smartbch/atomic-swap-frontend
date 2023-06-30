@@ -419,40 +419,40 @@ const ABI = [
 ]
 
 export async function getAtomicSwapEther() {
-    return await getContract(CONFIG.AtomicSwapEther_Address, ABI)
+	return await getContract(CONFIG.AtomicSwapEther_Address, ABI)
 }
 
 export interface MarketMaker {
-    addr: string
-    intro: string
-    bchPkh: string
-    bchLockTime: number
-    sbchLockTime: number
-    penaltyBPS: number
-    feeBPS: number
-    minSwapAmt: string
-    maxSwapAmt: string
+	addr: string
+	intro: string
+	bchPkh: string
+	bchLockTime: number
+	sbchLockTime: number
+	penaltyBPS: number
+	feeBPS: number
+	minSwapAmt: string
+	maxSwapAmt: string
 }
 
 
 export async function getMarketMakers(): Promise<MarketMaker[]> {
-    const htlc = await getAtomicSwapEther()
-    const bots = [];
-    for (let i = 0; ; i++) {
-        try {
-            const marketMakerAddr = await htlc.marketMakerAddrs(i);
-            const { addr, intro, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, minSwapAmt, maxSwapAmt } = await htlc.marketMakers(marketMakerAddr);
-            bots.push({
-                addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS,
-                minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString()
-            });
-            // bots.push({
-            //     addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime: 6, sbchLockTime: 3600, penaltyBPS, feeBPS,
-            //     minSwapAmt: parseFloat(ethers.utils.formatEther(minSwapAmt.toString()).toString()), maxSwapAmt: parseFloat(ethers.utils.formatEther(maxSwapAmt.toString()).toString())
-            // }); // debug
-        } catch (err) {
-            break;
-        }
-    }
-    return bots as any
+	const htlc = await getAtomicSwapEther()
+	const bots = [];
+	for (let i = 0; ; i++) {
+		try {
+			const marketMakerAddr = await htlc.marketMakerAddrs(i);
+			const { addr, intro, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, minSwapAmt, maxSwapAmt, retiredAt, statusChecker } = await htlc.marketMakers(marketMakerAddr);
+			bots.push({
+				addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, retiredAt: retiredAt.toNumber(),
+				minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString(), statusChecker
+			});
+			// bots.push({
+			//     addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime: 6, sbchLockTime: 3600, penaltyBPS, feeBPS,
+			//     minSwapAmt: parseFloat(ethers.utils.formatEther(minSwapAmt.toString()).toString()), maxSwapAmt: parseFloat(ethers.utils.formatEther(maxSwapAmt.toString()).toString())
+			// }); // debug
+		} catch (err) {
+			break;
+		}
+	}
+	return bots as any
 }
