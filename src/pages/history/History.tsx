@@ -105,7 +105,7 @@ export default function () {
             await updateRecord(record.id, { status: RecordStatus.Completed })
         } else {
             const wallet = await getWalletClass().watchOnly(state.bchAccount)
-            const htlcBCH = new HTLC(wallet as any, record.marketMaker.bchLockTime / 2, 0)
+            const htlcBCH = new HTLC(wallet as any, Math.floor(record.marketMaker.bchLockTime / 2), 0)
             const bchContract = await htlcBCH.createContract(record.marketMaker.bchPkh, record.info.walletPkh, record.hashLock)
             const utxo = (await bchContract.getUtxos())[0]
             const { confirmations = 0 } = await (bchContract as any).provider.performRequest("blockchain.transaction.get", utxo.txid, true)

@@ -96,7 +96,7 @@ async function syncSbch2BchRecord(record: SwapRecord) {
     }
 
     const wallet: any = await getWalletClass().newRandom()
-    const htlcBCH = new HTLC(wallet, record.marketMaker.bchLockTime / 2, 0)
+    const htlcBCH = new HTLC(wallet, Math.floor(record.marketMaker.bchLockTime / 2), 0)
     const bchContract = await htlcBCH.createContract(record.marketMaker.bchPkh, record.info.walletPkh, record.hashLock)
     const utxos = await bchContract.getUtxos()
     const b = utxos[0]
