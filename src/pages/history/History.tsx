@@ -51,10 +51,9 @@ export default function () {
             width: 100,
             render: (_, record) => (
                 <Space size="middle">
+                    <a href={getTxUrl(record)} target="_blank" >View</a>
                     {record.status === RecordStatus.Matched && <a onClick={() => withdraw(record)}>Withdraw</a>}
                     {record.status === RecordStatus.Expired && <a onClick={() => refund(record)}>Refund</a>}
-                    <a href={getTxUrl(record)} target="_blank" >View</a>
-
                 </Space>
             ),
         },

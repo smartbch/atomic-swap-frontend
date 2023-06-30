@@ -6,10 +6,14 @@ import { getAtomicSwapEther } from "../../../common/ETH-HTLC";
 import { pkhToCashAddr, cashAddrToPkh } from "../../../lib/common";
 import { wrapOperation, showLoading } from "../../../utils/operation";
 import { getAccount } from "../../../utils/web3";
+import { changeTimestampToDataFormat } from "../../../utils/date";
+import { useStore } from "../../../common/store";
 
 // const DatePicker = DatePicker_.generatePicker<Moment>(momentGenerateConfig);
 
 export default function () {
+    const { setStoreItem } = useStore()
+
     const [form] = Form.useForm<{
         addr: string,
         retiredAt: any,
@@ -29,9 +33,10 @@ export default function () {
             const atomicSwapEther = await getAtomicSwapEther()
             const marketMaker = await atomicSwapEther.marketMakers(await getAccount());
             if (marketMaker.addr !== ethers.constants.AddressZero) {
+                const retiredAt = marketMaker.retiredAt.toNumber()
                 form.setFieldsValue({
                     addr: marketMaker.addr,
-                    retiredAt: marketMaker.retiredAt,
+                    retiredAt: retiredAt === 0 ? 0 : changeTimestampToDataFormat(retiredAt),
                     intro: ethers.utils.parseBytes32String(marketMaker.intro),
                     botAddr: pkhToCashAddr(marketMaker.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet"),
                     bchLockTime: marketMaker.bchLockTime,
@@ -75,8 +80,11 @@ export default function () {
         showLoading()
         // update
         const atomicSwapEther = await getAtomicSwapEther()
-        const tx = await atomicSwapEther.retireMarketMaker(form.getFieldsValue().retiredAt.unix().toString());
+        const tx = await atomicSwapEther.retireMarketMaker(form.getFieldsValue().retiredAt);
         await tx.wait()
+        const { retiredAt } = await atomicSwapEther.marketMakers(form.getFieldsValue().addr)
+        form.setFieldsValue({ retiredAt: retiredAt.toNumber() })
+        setStoreItem({})
     }, "Retire success")
 
 
@@ -95,7 +103,7 @@ export default function () {
             rules={[{ required: true, message: 'intro is required' }]} >
             <Input suffix={hasCreated && <Button type="primary" onClick={updateInfo}>Update</Button>} />
         </Form.Item>
-        {hasCreated && <Form.Item name="retiredAt" label="Retired Time(seconds)"
+        {hasCreated && <Form.Item name="retiredAt" label={!form.getFieldValue("retiredAt") ? "Retired Delay(seconds)" : "Retired Time"}
             rules={[{ required: true, message: 'intro is required' }]} >
             <Input disabled={!!form.getFieldValue("retiredAt")} suffix={!form.getFieldValue("retiredAt") && <Button type="primary" onClick={retireMarketMaker}>Update</Button>} />
         </Form.Item>}

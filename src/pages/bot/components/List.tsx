@@ -5,8 +5,9 @@ import { MarketMaker, getMarketMakers } from "../../../common/ETH-HTLC"
 import { getWalletClass } from "../../../common/bch-wallet"
 import { pkhToCashAddr } from "../../../lib/common"
 import { getProvider } from "../../../utils/web3"
-import { Table } from "antd"
+import { Table, Tooltip } from "antd"
 import { ColumnsType } from "antd/es/table"
+import { changeTimestampToDataFormat } from "../../../utils/date"
 
 type BotMarketMaker = MarketMaker & { BCHBalance: string, SBCHBalance: string }
 
@@ -33,30 +34,49 @@ export default function () {
 
     const columns: ColumnsType<BotMarketMaker> = [
         {
+            title: 'Address',
+            dataIndex: 'addr',
+            key: 'addr',
+            fixed: 'left',
+            width: 120,
+            render: (addr) => <Tooltip placement="topLeft" title={addr}>
+                <a>{addr.slice(0, 10)}</a>
+            </Tooltip>
+        },
+        {
             title: 'Intro',
             dataIndex: 'intro',
             key: 'intro',
+            width: 120,
+            fixed: 'left',
         },
         {
-            title: 'RetiredTime(seconds)',
-            dataIndex: 'retiredAt',
-            key: 'retiredAt',
+            title: 'BCHBalance',
+            dataIndex: 'BCHBalance',
+            key: 'BCHBalance',
+        },
+        {
+            title: 'SBCHBalance',
+            dataIndex: 'SBCHBalance',
+            key: 'SBCHBalance',
         },
         {
             title: 'Bot Address',
             dataIndex: 'bchPkh',
             key: 'bchPkh',
-            render: (bchPkh) => pkhToCashAddr(bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet"),
+            render: (bchPkh) => <Tooltip placement="topLeft" title={pkhToCashAddr(bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet")}>
+                <a>{pkhToCashAddr(bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet").replace("bchtest:", '').replace("bitcoincash:", '').slice(0, 10)}</a>
+            </Tooltip>
         },
         {
             title: 'Bch Lock Time(blocks)',
-            dataIndex: 'sbchLockTime',
-            key: 'sbchLockTime',
+            dataIndex: 'bchLockTime',
+            key: 'bchLockTime',
         },
         {
             title: 'Sbch Lock Time(seconds)',
-            dataIndex: 'bchLockTime',
-            key: 'bchLockTime',
+            dataIndex: 'sbchLockTime',
+            key: 'sbchLockTime',
         },
         {
             title: 'Penalty(‱)',
@@ -69,28 +89,28 @@ export default function () {
             key: 'feeBPS',
         },
         {
-            title: 'Min swap amount',
-            dataIndex: 'minSwapAmt',
+            title: 'Swap Amount Range',
             key: 'minSwapAmt',
-        },
-        {
-            title: 'Min swap amount',
-            dataIndex: 'minSwapAmt',
-            key: 'minSwapAmt',
-        },
-        {
-            title: 'Max swap amount',
-            dataIndex: 'maxSwapAmt',
-            key: 'maxSwapAmt',
+            render: (_, record) => `${record.minSwapAmt}-${record.maxSwapAmt}`
         },
         {
             title: 'Status Checker',
             dataIndex: 'statusChecker',
             key: 'statusChecker',
+            render: (statusChecker) => <Tooltip placement="topLeft" title={statusChecker}>
+                <a>{statusChecker.slice(0, 10)}</a>
+            </Tooltip>
+        },
+        {
+            title: 'Retired Time',
+            dataIndex: 'retiredAt',
+            key: 'retiredAt',
+            render: (retiredAt) => retiredAt === 0 ? '' : changeTimestampToDataFormat(retiredAt * 1000),
+            width: 150
         },
     ];
 
     return <div>
-        <Table rowKey="addr" columns={columns} dataSource={marketMakers} pagination={{ pageSize: 10000 }} />
+        <Table scroll={{ x: 2000 }} rowKey="addr" columns={columns} dataSource={marketMakers} pagination={{ pageSize: 10000 }} />
     </div>
 }
