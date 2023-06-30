@@ -38,7 +38,7 @@ export default function () {
             dataIndex: 'addr',
             key: 'addr',
             fixed: 'left',
-            width: 120,
+            width: 150,
             render: (addr) => <Tooltip placement="topLeft" title={addr}>
                 <a>{addr.slice(0, 10)}</a>
             </Tooltip>
