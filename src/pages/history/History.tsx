@@ -28,6 +28,7 @@ export default function () {
             title: 'Direction',
             dataIndex: 'direction',
             key: 'direction',
+            render: (direction) => direction === SwapDriection.Bch2Sbch ? "Bch -> SmartBCH" : "SmartBCH -> Bch"
         },
         {
             title: 'Amount',
