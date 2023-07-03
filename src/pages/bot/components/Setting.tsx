@@ -12,7 +12,7 @@ import { useStore } from "../../../common/store";
 // const DatePicker = DatePicker_.generatePicker<Moment>(momentGenerateConfig);
 
 export default function () {
-    const { setStoreItem } = useStore()
+    const { state, setStoreItem } = useStore()
 
     const [form] = Form.useForm<{
         addr: string,
@@ -26,6 +26,7 @@ export default function () {
         minSwapAmt: string,
         maxSwapAmt: string,
         statusChecker: string
+        stakedValue: string,
     }>();
 
     useEffect(() => {
@@ -36,7 +37,7 @@ export default function () {
                 const retiredAt = marketMaker.retiredAt.toNumber()
                 form.setFieldsValue({
                     addr: marketMaker.addr,
-                    retiredAt: retiredAt === 0 ? 0 : changeTimestampToDataFormat(retiredAt),
+                    retiredAt: retiredAt === 0 ? 0 : changeTimestampToDataFormat(retiredAt * 1000),
                     intro: ethers.utils.parseBytes32String(marketMaker.intro),
                     botAddr: pkhToCashAddr(marketMaker.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet"),
                     bchLockTime: marketMaker.bchLockTime,
@@ -46,6 +47,7 @@ export default function () {
                     minSwapAmt: ethers.utils.formatEther(marketMaker.minSwapAmt.toString()),
                     maxSwapAmt: ethers.utils.formatEther(marketMaker.maxSwapAmt.toString()),
                     statusChecker: marketMaker.statusChecker,
+                    stakedValue: marketMaker.stakedValue.toString()
                 })
                 setHasCreated(true)
             }
@@ -57,11 +59,12 @@ export default function () {
         showLoading()
         const values = form.getFieldsValue()
         const atomicSwapEther = await getAtomicSwapEther()
+        const MIN_STAKED_VALUE = await atomicSwapEther.MIN_STAKED_VALUE()
         const tx = await atomicSwapEther.registerMarketMaker(
             ethers.utils.formatBytes32String(values.intro), `0x${cashAddrToPkh(values.botAddr)}`,
             values.bchLockTime, values.sbchLockTime, values.penaltyBPS, values.feeBPS,
             ethers.utils.parseEther(values.minSwapAmt), ethers.utils.parseEther(values.maxSwapAmt),
-            values.statusChecker
+            values.statusChecker, { value: MIN_STAKED_VALUE }
         )
         await tx.wait()
         form.setFieldsValue({ addr: await getAccount() })
@@ -80,12 +83,26 @@ export default function () {
         showLoading()
         // update
         const atomicSwapEther = await getAtomicSwapEther()
+        const MIN_RETIRE_DELAY = await atomicSwapEther.MIN_RETIRE_DELAY()
+        if (Number(form.getFieldsValue().retiredAt) < MIN_RETIRE_DELAY) {
+            throw new Error(`Must larger than ${MIN_RETIRE_DELAY}`)
+        }
         const tx = await atomicSwapEther.retireMarketMaker(form.getFieldsValue().retiredAt);
         await tx.wait()
-        const { retiredAt } = await atomicSwapEther.marketMakers(form.getFieldsValue().addr)
-        form.setFieldsValue({ retiredAt: retiredAt.toNumber() })
+        const { retiredAt } = await atomicSwapEther.marketMakers(state.account)
+        form.setFieldsValue({ retiredAt: changeTimestampToDataFormat(retiredAt.toNumber() * 1000) })
         setStoreItem({})
     }, "Retire success")
+
+    const withdrawStakedBCH = wrapOperation(async () => {
+        showLoading()
+        // update
+        const atomicSwapEther = await getAtomicSwapEther()
+        const tx = await atomicSwapEther.withdrawStakedValue();
+        await tx.wait()
+        form.resetFields()
+        setStoreItem({})
+    }, "withdrawStakedBCH success")
 
 
     const [hasCreated, setHasCreated] = useState(false)
@@ -127,11 +144,11 @@ export default function () {
             rules={[{ required: true, message: 'feeBPS is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="minSwapAmt" label="Min swap amount"
+        <Form.Item name="minSwapAmt" label="Min Swap Amount"
             rules={[{ required: true, message: 'minSwapAmt is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="maxSwapAmt" label="Max swap amount"
+        <Form.Item name="maxSwapAmt" label="Max Swap Amount"
             rules={[{ required: true, message: 'maxSwapAmt is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
@@ -144,5 +161,10 @@ export default function () {
                 Create
             </Button>
         </Form.Item>}
+        {form.getFieldValue("stakedValue") != 0 && form.getFieldValue("retiredAt") && <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+            <Button type="primary" onClick={withdrawStakedBCH}>
+                Withdraw Staked BCH
+            </Button>
+        </Form.Item> || ''}
     </Form ></div>)
 }

@@ -26,6 +26,6 @@ export default function () {
 
     return (
         <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
-            <Tabs defaultActiveKey="1" items={items} />;
+            <Tabs defaultActiveKey="1" items={items} />
         </div>)
 }

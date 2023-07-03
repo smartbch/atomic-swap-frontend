@@ -117,8 +117,8 @@ const Swap: React.FC = () => {
             >
                 <Form.Item label="Direction" name="direction" rules={[{ required: true }]}>
                     <Radio.Group>
-                        <Radio value={SwapDriection.Bch2Sbch}> Bch2Sbch </Radio>
-                        <Radio value={SwapDriection.Sbch2Bch}> Sbch2Bch </Radio>
+                        <Radio value={SwapDriection.Bch2Sbch}> Bch {"->"} SmartBCH </Radio>
+                        <Radio value={SwapDriection.Sbch2Bch}> SmartBCH {"->"} Bch </Radio>
                     </Radio.Group>
                 </Form.Item>
                 <Form.Item label="MarketMaker" name="marketMakerAddr" rules={[{ required: true }]} >

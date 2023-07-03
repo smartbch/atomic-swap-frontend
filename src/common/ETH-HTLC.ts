@@ -3,6 +3,22 @@ import CONFIG from "../CONFIG";
 import { getContract } from "../utils/web3";
 const ABI = [
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "minStakedValue",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "minRetireDelay",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -90,6 +106,32 @@ const ABI = [
 		"type": "event"
 	},
 	{
+		"inputs": [],
+		"name": "MIN_RETIRE_DELAY",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "MIN_STAKED_VALUE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "bytes32",
@@ -124,16 +166,88 @@ const ABI = [
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "fromIdx",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "count",
 				"type": "uint256"
 			}
 		],
-		"name": "marketMakerAddrs",
+		"name": "getMarketMakers",
 		"outputs": [
 			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
+				"components": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					},
+					{
+						"internalType": "uint64",
+						"name": "retiredAt",
+						"type": "uint64"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "intro",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes20",
+						"name": "bchPkh",
+						"type": "bytes20"
+					},
+					{
+						"internalType": "uint16",
+						"name": "bchLockTime",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint32",
+						"name": "sbchLockTime",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint16",
+						"name": "penaltyBPS",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint16",
+						"name": "feeBPS",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minSwapAmt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxSwapAmt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "stakedValue",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "statusChecker",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "unavailable",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct AtomicSwapEther.MarketMaker[]",
+				"name": "list",
+				"type": "tuple[]"
 			}
 		],
 		"stateMutability": "view",
@@ -197,6 +311,11 @@ const ABI = [
 			{
 				"internalType": "uint256",
 				"name": "maxSwapAmt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stakedValue",
 				"type": "uint256"
 			},
 			{
@@ -296,7 +415,7 @@ const ABI = [
 		],
 		"name": "registerMarketMaker",
 		"outputs": [],
-		"stateMutability": "nonpayable",
+		"stateMutability": "payable",
 		"type": "function"
 	},
 	{
@@ -310,25 +429,6 @@ const ABI = [
 		"name": "retireMarketMaker",
 		"outputs": [],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "secretLocks",
-		"outputs": [
-			{
-				"internalType": "bytes32",
-				"name": "",
-				"type": "bytes32"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -415,6 +515,13 @@ const ABI = [
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdrawStakedValue",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	}
 ]
 
@@ -432,27 +539,17 @@ export interface MarketMaker {
 	feeBPS: number
 	minSwapAmt: string
 	maxSwapAmt: string
+	stakedValue: string
 }
 
 
 export async function getMarketMakers(): Promise<MarketMaker[]> {
-	const htlc = await getAtomicSwapEther()
-	const bots = [];
-	for (let i = 0; ; i++) {
-		try {
-			const marketMakerAddr = await htlc.marketMakerAddrs(i);
-			const { addr, intro, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, minSwapAmt, maxSwapAmt, retiredAt, statusChecker } = await htlc.marketMakers(marketMakerAddr);
-			bots.push({
-				addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, retiredAt: retiredAt.toNumber(),
-				minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString(), statusChecker
-			});
-			// bots.push({
-			//     addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime: 6, sbchLockTime: 3600, penaltyBPS, feeBPS,
-			//     minSwapAmt: parseFloat(ethers.utils.formatEther(minSwapAmt.toString()).toString()), maxSwapAmt: parseFloat(ethers.utils.formatEther(maxSwapAmt.toString()).toString())
-			// }); // debug
-		} catch (err) {
-			break;
-		}
-	}
-	return bots as any
+	const atomicSwapEther = await getAtomicSwapEther()
+	let makers = await atomicSwapEther.getMarketMakers(0, 100)
+	makers = makers.filter((v: any) => !v.unavailable && v.retiredAt.toNumber() < new Date().getTime())
+	return makers.map(({ stakedValue, addr, intro, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, minSwapAmt, maxSwapAmt, retiredAt, statusChecker }: any) => ({
+		addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, retiredAt: retiredAt.toNumber(),
+		minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString(), statusChecker,
+		stakedValue: stakedValue.toString()
+	}))
 }
