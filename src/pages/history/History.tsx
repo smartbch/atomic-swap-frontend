@@ -62,19 +62,23 @@ export default function () {
 
     useEffect(() => {
         const init = async () => {
-            const account = await getAccount()
-            setTotal(await queryRecordsLength(account))
+            if (!state.bchAccount) {
+                return
+            }
+            setTotal(await queryRecordsLength(state.bchAccount))
 
             // const records = await queryRecords(account, 1)
             // setList(records)
         }
         init()
-    }, [])
+    }, [state.bchAccount])
 
     useEffect(() => {
         const fetch = async () => {
-            const account = await getAccount()
-            const records = await queryRecords(account, pageIndex)
+            if (!state.bchAccount) {
+                return
+            }
+            const records = await queryRecords(state.bchAccount, pageIndex)
             setList(records)
 
             console.log("syncRecords", records)
@@ -84,7 +88,7 @@ export default function () {
             setList([...records])
         }
         fetch()
-    }, [pageIndex])
+    }, [pageIndex, state.bchAccount])
 
     const getTxUrl = (record: SwapRecord) => {
         if (record.direction === SwapDriection.Sbch2Bch) {

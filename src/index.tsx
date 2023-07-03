@@ -6,6 +6,7 @@ import reportWebVitals from './reportWebVitals';
 import { BrowserRouter as Router } from 'react-router-dom';
 import Buffer from "vue-buffer"
 import { BigNumber } from 'bignumber.js';
+import config from './CONFIG';
 window["Buffer"] = Buffer;
 
 const oldPwd = (window as any).Math.pow;
@@ -22,7 +23,7 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   // <React.StrictMode>
-  <Router>
+  <Router basename={process.env.NODE_ENV === "production" && !config.MAINNET && 'chipnet' || ''}>
     <App />
   </Router>
   // </React.StrictMode>

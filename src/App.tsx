@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Button, Layout, Menu, notification, theme } from 'antd';
+import { Button, Dropdown, Layout, Menu, MenuProps, Space, notification, theme } from 'antd';
 import { Route, RouterProvider, Routes, createBrowserRouter, useNavigate } from 'react-router-dom';
 import { routes } from './common/routes';
 import { connect, getAccount, setupNetwork } from './utils/web3';
@@ -7,14 +7,19 @@ import { setupSmartBCHNetwork } from './common/web3';
 import CONFIG from './CONFIG';
 import { getBCHAccount } from './lib/pay4best';
 import { useStore } from './common/store';
+import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 
 const { Header, Content, Footer, Sider } = Layout;
 
 const App: React.FC = () => {
   const [api, contextHolder] = notification.useNotification();
-  const {state,setStoreItem} = useStore()
+  const { state, setStoreItem } = useStore()
 
   useEffect(() => {
+    if (window.location.pathname.includes("/chipnet/") && window.location.pathname !== "/chipnet" && window.location.pathname !== "/chipnet/") {
+      window.location.href = "/chipnet"
+      return
+    }
     const init = async () => {
       try {
         await connect()
@@ -64,10 +69,28 @@ const App: React.FC = () => {
   } = theme.useToken();
   const navigate = useNavigate();
 
-  if(!state.account) {
+  const items: MenuProps['items'] = [
+    {
+      key: '1',
+      label: (
+        <a target="_self" rel="noopener noreferrer" href="/">
+          Mainnet
+        </a>
+      ),
+    },
+    {
+      key: '2',
+      label: (
+        <a target="_self" rel="noopener noreferrer" href="/chipnet">
+          Testnet
+        </a>
+      ),
+    }
+  ]
+  if (!state.account) {
     return <Button onClick={connect}>Connect Wallet</Button>
   }
-  
+
   return (
     <>
       <Layout>
@@ -82,12 +105,22 @@ const App: React.FC = () => {
           />
           <div style={{ flex: 1 }} />
           <Button type="link" style={{ marginRight: 20 }}> {state.account}</Button>
+          <Dropdown menu={{ items }}>
+            <a onClick={(e) => e.preventDefault()}>
+              <Space>
+                {CONFIG.MAINNET ? "Mainnet" : "Testnet"}
+                <DownOutlined />
+              </Space>
+            </a>
+          </Dropdown>
         </Header>
 
         <Content style={{ minHeight: "calc(100vh - 150px)", background: colorBgContainer, padding: '0 50px' }} >
-          <Routes>
-            {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
-          </Routes>
+          {
+            CONFIG.MAINNET ? <div style={{ marginTop: 30, textAlign: "center" }}>Please Switch To Testnet</div> : <Routes>
+              {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
+            </Routes>
+          }
         </Content>
         <Footer style={{ textAlign: 'center' }}>AtomicSwap ©2023 Created by SmartBCH</Footer>
       </Layout>

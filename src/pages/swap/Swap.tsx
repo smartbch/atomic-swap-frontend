@@ -84,7 +84,7 @@ const Swap: React.FC = () => {
         if (values.direction === SwapDriection.Sbch2Bch) {
             await setupSmartBCHNetwork()
             const atomicSwapEther = await getAtomicSwapEther()
-            recordId = await insertRecord(state.account, SwapDriection.Sbch2Bch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
+            recordId = await insertRecord(state.bchAccount, SwapDriection.Sbch2Bch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
             const tx0 = await atomicSwapEther.open(marketMaker.addr, hashLock, marketMaker.sbchLockTime, `0x${walletPkh}`, info.penaltyBPS,
                 { value: ethers.utils.parseEther(values.amount.toString()) })
             await updateRecord(recordId, { openTxId: tx0.hash })
@@ -92,7 +92,7 @@ const Swap: React.FC = () => {
             await updateRecord(recordId, { status: RecordStatus.New })
         } else {
             const recipientPkh = marketMaker.bchPkh
-            recordId = await insertRecord(state.account, SwapDriection.Bch2Sbch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
+            recordId = await insertRecord(state.bchAccount, SwapDriection.Bch2Sbch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
             const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
             const htclBCH = new HTLC(wallet as any, marketMaker.bchLockTime, info.penaltyBPS)
             const unSignedTx = await htclBCH.send(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), true)

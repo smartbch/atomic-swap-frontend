@@ -30,8 +30,10 @@
     "zustand": "^4.3.8"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "GENERATE_SOURCEMAP=false react-app-rewired  build && cp build/index.html build/404.html",
+    "start": "cross-env REACT_APP_MAINNET=false react-app-rewired start",
+    "build": "rm -rf dist && mkdir dist && npm run build-testnet && mv build dist/chipnet && npm run build-mainnet && mv build/* dist",
+    "build-mainnet": "cross-env REACT_APP_MAINNET=true GENERATE_SOURCEMAP=false react-app-rewired build && cp build/index.html build/404.html",
+    "build-testnet": "cross-env PUBLIC_URL=. REACT_APP_MAINNET=false GENERATE_SOURCEMAP=false react-app-rewired  build && cp build/index.html build/404.html",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -52,5 +54,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }

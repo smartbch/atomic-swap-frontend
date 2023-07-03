@@ -101,6 +101,7 @@ export default function () {
         const tx = await atomicSwapEther.withdrawStakedValue();
         await tx.wait()
         form.resetFields()
+        setHasCreated(false)
         setStoreItem({})
     }, "withdrawStakedBCH success")
 
