@@ -1,8 +1,6 @@
-import { decodeTransaction, hexToBin, sha256, type TransactionCommon } from '@bitauth/libauth';
+import { hexToBin, sha256 } from '@bitauth/libauth';
 import { OpReturnData, SendRequest, Wallet } from "mainnet-js";
-import { type SendRequestOptionsI } from "mainnet-js/dist/module/wallet/interface";
-import { Contract, getSignatureTemplate } from '@mainnet-cash/contract';
-import { type SignableUtxo } from 'cashscript/dist/interfaces';
+import { Contract } from '@mainnet-cash/contract';
 import {
   bufferToHex,
   hexToBuffer,
@@ -12,14 +10,13 @@ import {
   createUnsignedTx,
   encodeBE2,
   mnUtxoToCSUtxo,
-  recipientToReq,
 } from "./common";
 
-// ../covenants/HTLC3.cash
-const htlc3 = `
+// ../covenants/HTLC5.cash
+const htlc5 = `
 pragma cashscript ^0.8.0;
 
-// Hash Time Locked Contract
+// Hash Time Locked Contract v5
 contract HTLC(bytes20 senderPKH,
               bytes20 recipientPKH,
               bytes32 secretLock,
@@ -27,40 +24,37 @@ contract HTLC(bytes20 senderPKH,
               int penaltyBPS) {
 
     // receive by recipient
-    function receive(sig recipientSig, pubkey recipientPK, bytes32 secret) {
-        if (recipientSig.length > 0) {
-            require(hash160(recipientPK) == recipientPKH);
-            require(checkSig(recipientSig, recipientPK));
-        } else {
-            bytes recipientLock = new LockingBytecodeP2PKH(recipientPKH);
-            require(tx.inputs[1].lockingBytecode == recipientLock);
-        }
-
+    function receive(bytes32 secret) {
         require(this.activeInputIndex == 0);
         require(sha256(secret) == secretLock);
-        // require(tx.age >= expiration);
+
+        bytes recipientLock = new LockingBytecodeP2PKH(recipientPKH);
+        require(tx.outputs[0].lockingBytecode == recipientLock);
+        require(tx.outputs[0].value >= tx.inputs[0].value - 2000);
     }
 
     // refund by sender
-    function refund(sig senderSig, pubkey senderPK) {
-        if (senderSig.length > 0) {
-            require(hash160(senderPK) == senderPKH);
-            require(checkSig(senderSig, senderPK));
-        } else {
-            bytes senderLock = new LockingBytecodeP2PKH(senderPKH);
-            require(tx.inputs[1].lockingBytecode == senderLock);
-        }
-
+    function refund() {
         require(this.activeInputIndex == 0);
         require(tx.age >= expiration);
 
+        int lockedVal = tx.inputs[0].value;
+        int refundVal = lockedVal;
+        int penalty = 0;
+
         // give some of the fund to the recipient
         if (penaltyBPS > 0) {
-            int penalty = tx.inputs[0].value * penaltyBPS / 10000;
-            require(tx.outputs[0].value >= penalty);
+            penalty = lockedVal * penaltyBPS / 10000;
+            refundVal = lockedVal - penalty;
+
             bytes recipientLock = new LockingBytecodeP2PKH(recipientPKH);
-            require(tx.outputs[0].lockingBytecode == recipientLock);
+            require(tx.outputs[1].lockingBytecode == recipientLock);
+            require(tx.outputs[1].value >= penalty);
         }
+
+        bytes senderLock = new LockingBytecodeP2PKH(senderPKH);
+        require(tx.outputs[0].lockingBytecode == senderLock);
+        require(tx.outputs[0].value >= refundVal - 2000);
     }
 
 }
@@ -101,7 +95,7 @@ export class HTLC {
                  recipientPkh: string,
                  hashLock    : string,) {
     const args = [senderPkh, recipientPkh, hashLock, this.expiration, this.penaltyBPS];
-    return new Contract(htlc3, args, this.wallet.network);
+    return new Contract(htlc5, args, this.wallet.network);
   }
 
   async send(toCashAddr: string,
@@ -139,7 +133,8 @@ export class HTLC {
 
   async receive(fromCashAddr: string,
                 secretHex   : string, // 32 bytes
-                buildUnsigned = false) {
+                minerFee = 1000,
+                dryRun = false) {
     const senderPkh = cashAddrToPkh(fromCashAddr);
     const recipientPkh = cashAddrToPkh(this.wallet.getDepositAddress());
     const hashLock = HTLC.getHashLock(secretHex);
@@ -156,56 +151,30 @@ export class HTLC {
     }
     console.log('lockedUtxo:', lockedUtxo);
 
-    const txFee = 1000
-    const myUtxos = await this.wallet.getUtxos();
-    const sigUtxo = myUtxos
-      .filter(x => !x.token) // no token
-      .find(x => x.satoshis > 1000); // have enough value
-    if (!sigUtxo) {
-      throw new Error("sig UTXO not found !");
-    }
-    console.log('sigUtxo:', sigUtxo);
+    const input = mnUtxoToCSUtxo(lockedUtxo);
+    console.log('input:', input);
 
-    const inputs = [lockedUtxo, sigUtxo];
-    const csInputs = [mnUtxoToCSUtxo(lockedUtxo), mnUtxoToCSUtxo(sigUtxo)];
-    (csInputs[1] as SignableUtxo).template = buildUnsigned
-      ? getSignatureTemplate(await Wallet.newRandom())
-      : getSignatureTemplate(this.wallet);
-    console.log('csInputs:', csInputs);
-
-    const gotAmt = sigUtxo.satoshis + lockedUtxo.satoshis - txFee;
-    const csOutputs = [
-      createRecipient(this.wallet.getDepositAddress(), Number(gotAmt))
-    ];
-    console.log('csOutputs:', csOutputs);
+    const gotAmt = lockedUtxo.satoshis - minerFee;
+    const output = createRecipient(this.wallet.getDepositAddress(), Number(gotAmt));
+    console.log('output:', output);
 
     const fn = contract!.getContractFunction("receive");
-    let builder = fn('', '', secretHex)
-      .from(csInputs)
-      .to(csOutputs)
-      .withHardcodedFee(BigInt(txFee))
+    const builder = fn(secretHex)
+      .from([input])
+      .to([output])
+      .withHardcodedFee(BigInt(minerFee));
 
-    if (buildUnsigned) {
-      const discardChange = true;
-      const opts: SendRequestOptionsI = {
-        utxoIds: inputs,
-        ensureUtxos: inputs,
-        buildUnsigned: true,
-        checkTokenQuantities: false,
-      };
-
-      let unsignedTx = await createUnsignedTx(this.wallet, csOutputs.map(recipientToReq), discardChange, opts);
-      const csTx = decodeTransaction(hexToBin(await builder.build())) as TransactionCommon;
-      unsignedTx.transaction.inputs[0].unlockingBytecode = csTx.inputs[0].unlockingBytecode;
-      return unsignedTx
+    if (dryRun) {
+      return await builder.build();
+    } else {
+      return await builder.send();
     }
-    const resp = await builder.send();
-    return resp;
   }
 
   async refund(toCashAddr: string,
                hashLock  : string,
-               buildUnsigned = false) {
+               minerFee = 1000,
+               dryRun = false) {
     const senderPkh = cashAddrToPkh(this.wallet.getDepositAddress())
     const recipientPkh = cashAddrToPkh(toCashAddr);
     const contract = this.createContract(senderPkh, recipientPkh, hashLock);
@@ -220,57 +189,31 @@ export class HTLC {
     }
     console.log('lockedUtxo:', lockedUtxo);
 
-    let penalty = lockedUtxo.satoshis * this.penaltyBPS / 10000;
-    if (penalty < 546) {
-      penalty = 546
-    }
-    const txFee = 1000
-    const myUtxos = await this.wallet.getUtxos();
-    const sigUtxo = myUtxos
-      .filter(x => !x.token) // no token
-      .find(x => x.satoshis > 1000); // have enough value
-    if (!sigUtxo) {
-      throw new Error("sig UTXO not found !")
-    }
+    const penalty = Math.max(lockedUtxo.satoshis * this.penaltyBPS / 10000, 546);
+    const refunded = lockedUtxo.satoshis - penalty - minerFee;
 
-    const refunded = sigUtxo.satoshis + lockedUtxo.satoshis - penalty - txFee;
+    const input = mnUtxoToCSUtxo(lockedUtxo);
+    console.log('input:', input);
 
-    const inputs = [lockedUtxo, sigUtxo];
-    const csInputs = [mnUtxoToCSUtxo(lockedUtxo), mnUtxoToCSUtxo(sigUtxo)];
-    (csInputs[1] as SignableUtxo).template = buildUnsigned
-      ? getSignatureTemplate(await Wallet.newRandom())
-      : getSignatureTemplate(this.wallet);
-
-    const csOutputs = [
-      createRecipient(pkhToCashAddr(recipientPkh.replace("0x", ''), this.wallet.network), penalty),
+    const outputs = [
       createRecipient(this.wallet.getDepositAddress(), Number(refunded)),
+      createRecipient(pkhToCashAddr(recipientPkh.replace("0x", ''), this.wallet.network), penalty),
     ];
+    console.log('outputs:', outputs);
 
     const fn = contract!.getContractFunction("refund");
-    let builder = fn("", "")
-      .from(csInputs)
-      .to(csOutputs)
-      .withHardcodedFee(BigInt(txFee));
+    const builder = fn()
+      .from([input])
+      .to(outputs)
+      .withHardcodedFee(BigInt(minerFee));
       // .withAge(this.expiration);
     (builder as any).sequence = this.expiration
 
-    if (buildUnsigned) {
-      const discardChange = true;
-      const opts: SendRequestOptionsI = {
-        utxoIds: inputs,
-        ensureUtxos: inputs,
-        buildUnsigned: true,
-        checkTokenQuantities: false,
-      };
-
-      let unsignedTx = await createUnsignedTx(this.wallet, csOutputs.map(recipientToReq), discardChange, opts);
-      const csTx = decodeTransaction(hexToBin(await builder.build())) as TransactionCommon;
-      unsignedTx.transaction.inputs[0].unlockingBytecode = csTx.inputs[0].unlockingBytecode;
-      unsignedTx.transaction.inputs[0].sequenceNumber = this.expiration
-      return unsignedTx
+    if (dryRun) {
+      return await builder.build();
+    } else {
+      return await builder.send();
     }
-    const resp = await builder.send();
-    return resp;
   }
 
 }

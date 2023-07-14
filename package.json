@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "cross-env REACT_APP_MAINNET=false react-app-rewired start",
-    "build": "rm -rf dist && mkdir dist && npm run build-testnet && mv build dist/chipnet && npm run build-mainnet && mv build/* dist && mv dist build",
+    "build": "rm -rf dist && mkdir dist && npm run build-testnet && mv build dist/chipnet && npm run build-mainnet && mv build/* dist && mv dist/* build",
     "build-mainnet": "cross-env REACT_APP_MAINNET=true GENERATE_SOURCEMAP=false react-app-rewired build && cp build/index.html build/404.html",
     "build-testnet": "cross-env PUBLIC_URL=. REACT_APP_MAINNET=false GENERATE_SOURCEMAP=false react-app-rewired  build && cp build/index.html build/404.html",
     "test": "react-scripts test",

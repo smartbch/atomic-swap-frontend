@@ -49,6 +49,9 @@ const Swap: React.FC = () => {
         setDirection(direction_);
     };
     const onFinish = wrapOperation(async () => {
+        if (!state.bchAccount) {
+            throw new Error('Pay4best wallet not connected')
+        }
         const values = form.getFieldsValue()
         if (values.amount < 0.0001) {
             throw new Error('Amount must larger than 0.0001')
