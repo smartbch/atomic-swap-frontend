@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import CONFIG from "../../../CONFIG";
 import { getAtomicSwapEther } from "../../../common/ETH-HTLC";
 import { pkhToCashAddr, cashAddrToPkh } from "../../../lib/common";
-import { wrapOperation, showLoading } from "../../../utils/operation";
+import { wrapOperation, showLoading, confirmOperation } from "../../../utils/operation";
 import { getAccount } from "../../../utils/web3";
 import { changeTimestampToDataFormat } from "../../../utils/date";
 import { useStore } from "../../../common/store";
@@ -20,7 +20,7 @@ export default function () {
         intro: string,
         botAddr: string,
         bchLockTime: string, // in blocks
-        sbchLockTime: string,// in seconds
+        // sbchLockTime: string,// in seconds
         penaltyBPS: string,
         feeBPS: string,
         minSwapAmt: string,
@@ -41,7 +41,6 @@ export default function () {
                     intro: ethers.utils.parseBytes32String(marketMaker.intro),
                     botAddr: pkhToCashAddr(marketMaker.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet"),
                     bchLockTime: marketMaker.bchLockTime,
-                    sbchLockTime: marketMaker.sbchLockTime,
                     penaltyBPS: marketMaker.penaltyBPS,
                     feeBPS: marketMaker.feeBPS,
                     minSwapAmt: ethers.utils.formatEther(marketMaker.minSwapAmt.toString()),
@@ -56,13 +55,14 @@ export default function () {
     }, [])
 
     const onFinish = wrapOperation(async () => {
+        await confirmOperation({ content: `Registration will pledge 0.1bch and cannot initiate cross-chain transactions as a user.` })
         showLoading()
         const values = form.getFieldsValue()
         const atomicSwapEther = await getAtomicSwapEther()
         const MIN_STAKED_VALUE = await atomicSwapEther.MIN_STAKED_VALUE()
         const tx = await atomicSwapEther.registerMarketMaker(
             ethers.utils.formatBytes32String(values.intro), `0x${cashAddrToPkh(values.botAddr)}`,
-            values.bchLockTime, values.sbchLockTime, values.penaltyBPS, values.feeBPS,
+            values.bchLockTime, values.penaltyBPS, values.feeBPS,
             ethers.utils.parseEther(values.minSwapAmt), ethers.utils.parseEther(values.maxSwapAmt),
             values.statusChecker, { value: MIN_STAKED_VALUE }
         )
@@ -83,11 +83,7 @@ export default function () {
         showLoading()
         // update
         const atomicSwapEther = await getAtomicSwapEther()
-        const MIN_RETIRE_DELAY = await atomicSwapEther.MIN_RETIRE_DELAY()
-        if (Number(form.getFieldsValue().retiredAt) < MIN_RETIRE_DELAY) {
-            throw new Error(`Must larger than ${MIN_RETIRE_DELAY}`)
-        }
-        const tx = await atomicSwapEther.retireMarketMaker(form.getFieldsValue().retiredAt);
+        const tx = await atomicSwapEther.retireMarketMaker();
         await tx.wait()
         const { retiredAt } = await atomicSwapEther.marketMakers(state.account)
         form.setFieldsValue({ retiredAt: changeTimestampToDataFormat(retiredAt.toNumber() * 1000) })
@@ -120,22 +116,22 @@ export default function () {
             rules={[{ required: true, message: 'intro is required' }]} >
             <Input suffix={hasCreated && <Button type="primary" onClick={updateInfo}>Update</Button>} />
         </Form.Item>
-        {hasCreated && <Form.Item name="retiredAt" label={!form.getFieldValue("retiredAt") ? "Retired Delay(seconds)" : "Retired Time"}
+        {hasCreated && form.getFieldValue("retiredAt") && <Form.Item name="retiredAt" label={"Retired Time"}
             rules={[{ required: true, message: 'intro is required' }]} >
-            <Input disabled={!!form.getFieldValue("retiredAt")} suffix={!form.getFieldValue("retiredAt") && <Button type="primary" onClick={retireMarketMaker}>Update</Button>} />
-        </Form.Item>}
-        <Form.Item name="botAddr" label="Bot Address"
-            rules={[{ required: true, message: 'botAddr is required' }]} >
+            <Input disabled />
+        </Form.Item> || ''}
+        <Form.Item name="botAddr" label="Bot BCH Address"
+            rules={[{ required: true, message: "Bot's BCH Address is required" }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="bchLockTime" label="Bch Lock Time(blocks)"
+        <Form.Item name="bchLockTime" label="Bch Lock Time(Blocks)"
             rules={[{ required: true, message: 'bchLockTime is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="sbchLockTime" label="Sbch Lock Time(seconds)"
+        {/* <Form.Item name="sbchLockTime" label="Sbch Lock Time(seconds)"
             rules={[{ required: true, message: 'sbchLockTime is required' }]} >
             <Input disabled={hasCreated} />
-        </Form.Item>
+        </Form.Item> */}
         <Form.Item name="penaltyBPS" label="Penalty(‱)"
             rules={[{ required: true, message: 'penaltyBPS is required' }]} >
             <Input disabled={hasCreated} />
@@ -161,6 +157,11 @@ export default function () {
                 Create
             </Button>
         </Form.Item>}
+        {hasCreated && !form.getFieldValue("retiredAt") && <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
+            <Button type="primary" onClick={retireMarketMaker}>
+                Retire
+            </Button>
+        </Form.Item> || ''}
         {form.getFieldValue("stakedValue") != 0 && form.getFieldValue("retiredAt") && <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
             <Button type="primary" onClick={withdrawStakedBCH}>
                 Withdraw Staked BCH

@@ -88,7 +88,7 @@ const App: React.FC = () => {
     }
   ]
   if (!state.account) {
-    return <Button onClick={connect}>Connect Wallet</Button>
+    return <Button onClick={() => connect().then(() => window.location.reload())}>Connect Wallet</Button>
   }
 
   return (

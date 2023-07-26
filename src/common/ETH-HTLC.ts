@@ -23,46 +23,14 @@ const ABI = [
 		"inputs": [
 			{
 				"indexed": true,
-				"internalType": "bytes32",
-				"name": "_secretLock",
-				"type": "bytes32"
-			},
-			{
-				"indexed": true,
-				"internalType": "bytes32",
-				"name": "_secretKey",
-				"type": "bytes32"
-			}
-		],
-		"name": "Close",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "bytes32",
-				"name": "_secretLock",
-				"type": "bytes32"
-			}
-		],
-		"name": "Expire",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
 				"internalType": "address",
-				"name": "_depositTrader",
+				"name": "_sender",
 				"type": "address"
 			},
 			{
 				"indexed": true,
 				"internalType": "address",
-				"name": "_withdrawTrader",
+				"name": "_receiver",
 				"type": "address"
 			},
 			{
@@ -86,7 +54,7 @@ const ABI = [
 			{
 				"indexed": false,
 				"internalType": "bytes20",
-				"name": "_bchWithdrawPKH",
+				"name": "_receiverBchPkh",
 				"type": "bytes20"
 			},
 			{
@@ -102,7 +70,39 @@ const ABI = [
 				"type": "uint16"
 			}
 		],
-		"name": "Open",
+		"name": "Lock",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			}
+		],
+		"name": "Refund",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			},
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "_secretKey",
+				"type": "bytes32"
+			}
+		],
+		"name": "Unlock",
 		"type": "event"
 	},
 	{
@@ -129,37 +129,6 @@ const ABI = [
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "_secretLock",
-				"type": "bytes32"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "_secretKey",
-				"type": "bytes32"
-			}
-		],
-		"name": "close",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "_secretLock",
-				"type": "bytes32"
-			}
-		],
-		"name": "expire",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -256,6 +225,63 @@ const ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "bytes32",
+				"name": "secretLock",
+				"type": "bytes32"
+			}
+		],
+		"name": "getSwapState",
+		"outputs": [
+			{
+				"internalType": "enum AtomicSwapEther.States",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address payable",
+				"name": "_receiver",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_validPeriod",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes20",
+				"name": "_receiverBchPkh",
+				"type": "bytes20"
+			},
+			{
+				"internalType": "uint16",
+				"name": "_penaltyBPS",
+				"type": "uint16"
+			},
+			{
+				"internalType": "bool",
+				"name": "_receiverIsMM",
+				"type": "bool"
+			}
+		],
+		"name": "lock",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "",
 				"type": "address"
@@ -335,34 +361,14 @@ const ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address payable",
-				"name": "_withdrawTrader",
-				"type": "address"
-			},
-			{
 				"internalType": "bytes32",
 				"name": "_secretLock",
 				"type": "bytes32"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_validPeriod",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bytes20",
-				"name": "_bchWithdrawPKH",
-				"type": "bytes20"
-			},
-			{
-				"internalType": "uint16",
-				"name": "_penaltyBPS",
-				"type": "uint16"
 			}
 		],
-		"name": "open",
+		"name": "refund",
 		"outputs": [],
-		"stateMutability": "payable",
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -381,11 +387,6 @@ const ABI = [
 				"internalType": "uint16",
 				"name": "_bchLockTime",
 				"type": "uint16"
-			},
-			{
-				"internalType": "uint32",
-				"name": "_sbchLockTime",
-				"type": "uint32"
 			},
 			{
 				"internalType": "uint16",
@@ -419,13 +420,7 @@ const ABI = [
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_delay",
-				"type": "uint256"
-			}
-		],
+		"inputs": [],
 		"name": "retireMarketMaker",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -460,28 +455,43 @@ const ABI = [
 		"name": "swaps",
 		"outputs": [
 			{
-				"internalType": "uint256",
-				"name": "timelock",
-				"type": "uint256"
+				"internalType": "bool",
+				"name": "receiverIsMM",
+				"type": "bool"
 			},
 			{
-				"internalType": "uint256",
+				"internalType": "uint64",
+				"name": "startTime",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "startHeight",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint32",
+				"name": "validPeriod",
+				"type": "uint32"
+			},
+			{
+				"internalType": "address payable",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"internalType": "address payable",
+				"name": "receiver",
+				"type": "address"
+			},
+			{
+				"internalType": "uint96",
 				"name": "value",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address payable",
-				"name": "ethTrader",
-				"type": "address"
-			},
-			{
-				"internalType": "address payable",
-				"name": "withdrawTrader",
-				"type": "address"
+				"type": "uint96"
 			},
 			{
 				"internalType": "bytes20",
-				"name": "bchWithdrawPKH",
+				"name": "receiverBchPkh",
 				"type": "bytes20"
 			},
 			{
@@ -501,6 +511,24 @@ const ABI = [
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretKey",
+				"type": "bytes32"
+			}
+		],
+		"name": "unlock",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{

@@ -102,7 +102,7 @@ export default function () {
         if (record.direction === SwapDriection.Bch2Sbch) {
             showLoading()
             const contract = await getAtomicSwapEther()
-            const tx = await contract.close(record.hashLock, `0x${record.info.secret}`)
+            const tx = await contract.unlock(record.hashLock, `0x${record.info.secret}`)
             await updateRecord(record.id, { closeTxId: tx.hash })
             await tx.wait()
             record.status = RecordStatus.Completed
@@ -115,7 +115,7 @@ export default function () {
             const utxo = (await bchContract.getUtxos())[0]
             const { confirmations = 0 } = await (bchContract as any).provider.performRequest("blockchain.transaction.get", utxo.txid, true)
             if (confirmations < 10) {
-                await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized. Continue?` })
+                await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized.` })
             }
             showLoading()
             const tx = await htlcBCH.receive(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, 546, true)
@@ -138,7 +138,7 @@ export default function () {
             await updateRecord(record.id, { status: RecordStatus.Refunded, refundTxId: txid })
         } else {
             const contract = await getAtomicSwapEther()
-            const tx0 = await contract.expire(record.hashLock)
+            const tx0 = await contract.refund(record.hashLock)
             await updateRecord(record.id, { refundTxId: tx0.hash })
             await tx0.wait()
             record.status = RecordStatus.Refunded

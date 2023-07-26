@@ -73,7 +73,7 @@ const Swap: React.FC = () => {
             }
         }
         const receivedAmount = BigNumber(ethers.utils.parseEther(values.amount.toString()).mul(10000 - marketMaker.feeBPS).div(10000).toString()).div(ethers.constants.WeiPerEther.toString()).toString()
-        await confirmOperation({ content: `You will receive ${receivedAmount} bch. Continue?` })
+        await confirmOperation({ content: `You will receive ${receivedAmount} bch.` })
         showLoading()
         const secret = Buffer.from(window.crypto.getRandomValues(new Uint8Array(32))).toString('hex')
         const hashLock = `0x${HTLC.getHashLock(secret)}`
@@ -88,7 +88,7 @@ const Swap: React.FC = () => {
             await setupSmartBCHNetwork()
             const atomicSwapEther = await getAtomicSwapEther()
             recordId = await insertRecord(state.bchAccount, SwapDriection.Sbch2Bch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
-            const tx0 = await atomicSwapEther.open(marketMaker.addr, hashLock, marketMaker.sbchLockTime, `0x${walletPkh}`, info.penaltyBPS,
+            const tx0 = await atomicSwapEther.lock(marketMaker.addr, hashLock, marketMaker.sbchLockTime, `0x${walletPkh}`, info.penaltyBPS, true,
                 { value: ethers.utils.parseEther(values.amount.toString()) })
             await updateRecord(recordId, { openTxId: tx0.hash })
             const tx1 = await tx0.wait()

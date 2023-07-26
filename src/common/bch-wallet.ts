@@ -9,7 +9,7 @@ export function getWalletClass(): typeof Wallet {
     if (CONFIG.MAINNET) {
         _Wallet = Wallet
     } else {
-        DefaultProvider.servers.testnet = ["wss://chipnet.bch.ninja:50004"]
+        // DefaultProvider.servers.testnet = ["wss://chipnet.bch.ninja:50004"]
         _Wallet = TestNetWallet;
     }
     return _Wallet
