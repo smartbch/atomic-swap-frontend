@@ -116,11 +116,9 @@ const App: React.FC = () => {
         </Header>
 
         <Content style={{ minHeight: "calc(100vh - 150px)", background: colorBgContainer, padding: '0 50px' }} >
-          {
-            CONFIG.MAINNET ? <div style={{ marginTop: 30, textAlign: "center" }}>Please Switch To Testnet</div> : <Routes>
-              {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
-            </Routes>
-          }
+          <Routes>
+            {routes.map(r => <Route key={r.path} path={r.path} element={r.element} />)}
+          </Routes>
         </Content>
         <Footer style={{ textAlign: 'center' }}>AtomicSwap ©2023 Created by SmartBCH</Footer>
       </Layout>
