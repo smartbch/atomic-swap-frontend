@@ -12,7 +12,7 @@ import { cashAddrToPkh, pkhToCashAddr } from '../../lib/common';
 import { setupSmartBCHNetwork } from '../../common/web3';
 import { RecordStatus, insertRecord, updateRecord } from '../../common/db';
 import { getWalletClass } from '../../common/bch-wallet';
-import { bch2Satoshis } from '../../utils/utils';
+import { bch2Satoshis } from '../../utils/bch';
 import { signTx } from '../../lib/pay4best';
 import { hexToBin } from '@bitauth/libauth';
 import CONFIG from '../../CONFIG';

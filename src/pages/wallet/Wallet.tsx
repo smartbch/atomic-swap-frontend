@@ -10,7 +10,7 @@ import { createUnsignedTx } from "../../lib/common";
 import { signTx } from "../../lib/pay4best";
 import { hexToBin } from '@bitauth/libauth';
 import TextArea from "antd/es/input/TextArea";
-import { bch2Satoshis } from "../../utils/utils";
+import { bch2Satoshis } from "../../utils/bch";
 
 export default function () {
     const [bchBalance, setBchBalance] = useState<string>('')
