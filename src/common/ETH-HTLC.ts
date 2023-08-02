@@ -584,12 +584,12 @@ export async function getMarketMakers(): Promise<MarketMaker[]> {
 
 export async function getPendingBalance(address: string) {
 	const atomicSwapEther = await getAtomicSwapEther()
-	const lockFilter = atomicSwapEther.filters.Lock([address]);
+	const lockFilter = atomicSwapEther.filters.Lock(null, address);
 	const refundFilter = atomicSwapEther.filters.Refund();
 	const unlockFilter = atomicSwapEther.filters.Unlock();
 	const [lockData, refundData, unlockData] = await Promise.all([
 		lockFilter, refundFilter, unlockFilter]
-		.map(filter => atomicSwapEther.queryFilter(filter, -14400, "latest")
+		.map(filter => atomicSwapEther.queryFilter(filter, -7200, "latest")
 			.then(res => res.map(v => v.args!)))
 	)
 	const notHandleData = lockData.filter(({ _secretLock }: any) => !refundData.some(r => r!._secretLock === _secretLock) && !unlockData.some(r => r!._secretLock === _secretLock))
