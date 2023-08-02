@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import CONFIG from "../CONFIG";
-import { getContract } from "../utils/web3";
+import { getContract, getProvider } from "../utils/web3";
 const ABI = [
 	{
 		"inputs": [
@@ -580,4 +580,19 @@ export async function getMarketMakers(): Promise<MarketMaker[]> {
 		minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString(), statusChecker,
 		stakedValue: stakedValue.toString()
 	}))
+}
+
+export async function getPendingBalance(address: string) {
+	const atomicSwapEther = await getAtomicSwapEther()
+	const lockFilter = atomicSwapEther.filters.Lock([address]);
+	const refundFilter = atomicSwapEther.filters.Refund();
+	const unlockFilter = atomicSwapEther.filters.Unlock();
+	const [lockData, refundData, unlockData] = await Promise.all([
+		lockFilter, refundFilter, unlockFilter]
+		.map(filter => atomicSwapEther.queryFilter(filter, -14400, "latest")
+			.then(res => res.map(v => v.args!)))
+	)
+	const notHandleData = lockData.filter(({ _secretLock }: any) => !refundData.some(r => r!._secretLock === _secretLock) && !unlockData.some(r => r!._secretLock === _secretLock))
+	const pendingValue = notHandleData.map(v => v._value).reduce((x, y) => x.add(y), ethers.constants.Zero)
+	return ethers.utils.formatEther(pendingValue)
 }

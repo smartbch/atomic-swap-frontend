@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Checkbox, Form, Input, InputNumber, Radio, Select, notification } from 'antd';
 import { SwapDriection } from '../../common/constants';
-import { MarketMaker, getAtomicSwapEther, getMarketMakers } from '../../common/ETH-HTLC';
+import { MarketMaker, getAtomicSwapEther, getMarketMakers, getPendingBalance } from '../../common/ETH-HTLC';
 import { ethers } from 'ethers';
 import BigNumber from 'bignumber.js';
 import modal from 'antd/es/modal';
@@ -32,7 +32,13 @@ const Swap: React.FC = () => {
             const provider = getProvider()
             const [SBCHBalances, BCHBalances]: any = await Promise.all([
                 Promise.all(marketMakers.map((v) => provider.getBalance(v.addr).then(ethers.utils.formatEther))),
-                Promise.all(marketMakers.map((v) => getWalletClass().fromCashaddr(pkhToCashAddr(v.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet")).then(w => w.getBalance("bch")))),
+                Promise.all(marketMakers.map(async (v) => {
+                    const [BCHBalance, pendingBalance] = await Promise.all([
+                        getWalletClass().fromCashaddr(pkhToCashAddr(v.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet")).then(w => w.getBalance("bch")),
+                        getPendingBalance(v.addr)
+                    ])
+                    return Number(BCHBalance) - Number(pendingBalance)
+                })),
             ])
 
             setMarketMakers(marketMakers.map((v, i) => ({
