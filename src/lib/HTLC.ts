@@ -189,7 +189,7 @@ export class HTLC {
     }
     console.log('lockedUtxo:', lockedUtxo);
 
-    const penalty = Math.max(lockedUtxo.satoshis * this.penaltyBPS / 10000, 546);
+    const penalty = Math.max(Math.ceil(lockedUtxo.satoshis * this.penaltyBPS / 10000), 546);
     const refunded = lockedUtxo.satoshis - penalty - minerFee;
 
     const input = mnUtxoToCSUtxo(lockedUtxo);
