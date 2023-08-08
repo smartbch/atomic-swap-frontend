@@ -152,6 +152,7 @@ export default function () {
                 const makers = await getMarketMakers()
                 const [sbchRecords, bchRecords] = await Promise.all([getSbchLockRecords(makers, state.account, state.bchAccount), getBchLockRecords(makers, state.account, state.bchAccount)])
                 recordsOnChain = recordsOnChain.concat(sbchRecords, bchRecords)
+                recordsOnChain = recordsOnChain.sort(function (a, b) { return b.info.createAt - a.info.createAt });
             }
 
             let records = await queryRecords(state.bchAccount, pageIndex)
