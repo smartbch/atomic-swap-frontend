@@ -3,6 +3,7 @@ import { getWalletClass } from "../../common/bch-wallet"
 import { SwapDriection } from "../../common/constants"
 import { RecordStatus, SwapRecord, updateRecord } from "../../common/db"
 import { HTLC } from "../../lib/HTLC"
+import { cashAddrToPkh } from "../../lib/common"
 
 export function needSynced(record: SwapRecord) {
     return ![RecordStatus.Completed, RecordStatus.Refunded, RecordStatus.Invalid].includes(record.status)
@@ -44,10 +45,15 @@ async function syncBch2SbchRecord(record: SwapRecord) {
         record.status = RecordStatus.WaitingToExpire
         return record
     }
-    if ([RecordStatus.Expired].includes(record.status) && !utxo) {
-        await updateRecord(record.id, { status: RecordStatus.Refunded })
-        record.status = RecordStatus.Refunded
-        return record
+    if (!utxo) {
+        const wallet_ = await getWalletClass().fromCashaddr(bchContract.getDepositAddress())
+        const latestTx = await wallet_.getLastTransaction()
+        const addr = latestTx?.vout[0].scriptPubKey?.addresses[0]
+        if (addr && cashAddrToPkh(addr) === record.info.walletPkh) {
+            await updateRecord(record.id, { status: RecordStatus.Refunded })
+            record.status = RecordStatus.Refunded
+            return record
+        }
     }
 
     if ([RecordStatus.Prepare].includes(record.status) && !utxo && now > createAt + 60 * 1000) {

@@ -7,20 +7,89 @@ import { ethers } from "ethers";
 import { changeTimestampToDataFormat } from "../../utils/date";
 import { syncRecord } from "./sync-record";
 import { SwapDriection } from "../../common/constants";
-import { getAtomicSwapEther } from "../../common/ETH-HTLC";
+import { MarketMaker, getAtomicSwapEther, getMarketMakers } from "../../common/ETH-HTLC";
 import { getWalletClass } from "../../common/bch-wallet";
 import { HTLC } from "../../lib/HTLC";
-import { pkhToCashAddr } from "../../lib/common";
+import { cashAddrToPkh, pkhToCashAddr } from "../../lib/common";
 import { signTx } from "../../lib/pay4best";
-import { hexToBin } from "@bitauth/libauth";
+import { hexToBin, parseScript } from "@bitauth/libauth";
 import { confirmOperation, showLoading, wrapOperation } from "../../utils/operation";
 import { useStore } from "../../common/store";
 import CONFIG from "../../CONFIG";
+import { reverseHexBytes } from "../../common/utils";
+import { bch2Satoshis } from "../../utils/bch";
+
+async function getSbchLockRecords(makers: MarketMaker[], account: string, bchAccount: string) {
+    // get events from sbch
+    const atomicSwapEther = await getAtomicSwapEther()
+    const lockFilter = atomicSwapEther.filters.Lock(account);
+    const lockEvents = await atomicSwapEther.queryFilter(lockFilter, -28800, "latest")
+    let recordsOnChain: SwapRecord[] = []
+    lockEvents.forEach(({ args, transactionHash }: any) => {
+        const maker = makers.find(x => x.addr === args._receiver)!
+        if (!maker) {
+            return
+        }
+        recordsOnChain.push({
+            id: args._secretLock,
+            direction: SwapDriection.Sbch2Bch,
+            hashLock: args._secretLock,
+            status: RecordStatus.New,
+            openTxId: transactionHash,
+            info: {
+                amount: args._value.toString(),
+                createAt: Number(args._createdTime.toString()) * 1000,
+                walletPkh: cashAddrToPkh(bchAccount)
+            },
+            marketMaker: maker
+        } as any)
+    })
+    return recordsOnChain
+}
+
+async function getBchLockRecords(makers: MarketMaker[], account: string, bchAccount: string) {
+    // get events from bch
+    const wallet = await getWalletClass().fromCashaddr(bchAccount)
+    let [latestBlockHeight, txs] = await Promise.all([wallet.provider.getBlockHeight(), wallet.getRawHistory()])
+    txs = txs.filter(v => v.height > (latestBlockHeight - 288))
+    const txInfos = await Promise.all(txs.map(tx => wallet.provider.getRawTransactionObject(tx.tx_hash)))
+    let recordsOnChain: SwapRecord[] = []
+    txInfos.forEach(v => {
+        if (v.vout.length < 2) {
+            return
+        }
+        const items = v.vout[1].scriptPubKey.asm.split(" ")
+        const pkh = cashAddrToPkh(bchAccount).replace("0x", '')
+        if (items[0] === "OP_RETURN" && items[3] === pkh && items[7] === account.replace("0x", '').toLowerCase()) {
+            const _secretLock = `0x${items[4]}`
+            const bchPkh = items[2]
+            const maker = makers.find(x => x.bchPkh === `0x${bchPkh}`)!
+            if (!maker) {
+                return
+            }
+            recordsOnChain.push({
+                id: _secretLock,
+                direction: SwapDriection.Bch2Sbch,
+                hashLock: _secretLock,
+                status: RecordStatus.New,
+                openTxId: v.txid,
+                info: {
+                    amount: ethers.utils.parseEther(v.vout[0].value.toString()).toString(),
+                    createAt: v.time * 1000,
+                    walletPkh: cashAddrToPkh(bchAccount)
+                },
+                marketMaker: maker
+            } as any)
+        }
+    })
+    return recordsOnChain
+}
 
 export default function () {
     const [list, setList] = useState<SwapRecord[]>([])
     const [pageIndex, setPageIndex] = useState(1)
     const [total, setTotal] = useState<number>(0)
+    const [loading, setLoading] = useState<boolean>(true)
     const { state, setStoreItem } = useStore()
 
     const columns: ColumnsType<SwapRecord> = [
@@ -78,7 +147,17 @@ export default function () {
             if (!state.bchAccount) {
                 return
             }
-            const records = await queryRecords(state.bchAccount, pageIndex)
+            let recordsOnChain: SwapRecord[] = []
+            if (pageIndex == 1) {
+                const makers = await getMarketMakers()
+                const [sbchRecords, bchRecords] = await Promise.all([getSbchLockRecords(makers, state.account, state.bchAccount), getBchLockRecords(makers, state.account, state.bchAccount)])
+                recordsOnChain = recordsOnChain.concat(sbchRecords, bchRecords)
+            }
+
+            let records = await queryRecords(state.bchAccount, pageIndex)
+            recordsOnChain = recordsOnChain.filter(x => !records.some(v => v.hashLock === x.hashLock))
+            records = recordsOnChain.concat(records)
+            setLoading(false)
             setList(records)
 
             console.log("syncRecords", records)
@@ -99,6 +178,9 @@ export default function () {
 
 
     const withdraw = wrapOperation(async (record: SwapRecord) => {
+        if (!record.info.secret) {
+            throw new Error("You have lost the secret, please wait for the refund")
+        }
         if (record.direction === SwapDriection.Bch2Sbch) {
             showLoading()
             const contract = await getAtomicSwapEther()
@@ -148,6 +230,6 @@ export default function () {
     }, "Refund successful")
 
     return <div style={{ width: 1000, margin: "0 auto", marginTop: 50 }}>
-        <Table columns={columns} rowKey="hashLock" dataSource={list} pagination={{ total, pageSize: 20, current: pageIndex, onChange: (page, _) => setPageIndex(page) }} />
+        <Table loading={loading} columns={columns} rowKey="hashLock" dataSource={list} pagination={{ total, pageSize: 20, current: pageIndex, onChange: (page, _) => setPageIndex(page) }} />
     </div>
 }
