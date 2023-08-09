@@ -23,7 +23,7 @@ async function getSbchLockRecords(makers: MarketMaker[], account: string, bchAcc
     // get events from sbch
     const atomicSwapEther = await getAtomicSwapEther()
     const lockFilter = atomicSwapEther.filters.Lock(account);
-    const lockEvents = await atomicSwapEther.queryFilter(lockFilter, -28800, "latest")
+    const lockEvents = await atomicSwapEther.queryFilter(lockFilter, -34560, "latest")
     let recordsOnChain: SwapRecord[] = []
     lockEvents.forEach(({ args, transactionHash }: any) => {
         const maker = makers.find(x => x.addr === args._receiver)!
