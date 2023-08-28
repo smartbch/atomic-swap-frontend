@@ -1,6 +1,6 @@
 # SmartBCH AtomicSwap User Guide
 
-This document shows how to swap BCH from/to sBCH using [AtomicSwap Web App](https://atomicswap.cash/) on [SmartBCH](https://smartbch.org/) Amber testnet and [BitCoin Cash](https://bitcoincash.org/) [chipnet](https://docs.bitcoincashnode.org/doc/test-networks/#chipnet).
+This document shows how to swap BCH from/to sBCH using [AtomicSwap Web App](https://atomicswap.cash/) on [SmartBCH](https://smartbch.org/) mainnet.
 
 
 
