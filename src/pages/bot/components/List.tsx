@@ -25,8 +25,8 @@ export default function () {
 
             setMarketMakers(marketMakers.map((v, i) => ({
                 ...v,
-                BCHBalance: SBCHBalances[i],
-                SBCHBalance: BCHBalances[i]
+                BCHBalance: BCHBalances[i],
+                SBCHBalance: SBCHBalances[i]
             })))
         }
         fetch()
