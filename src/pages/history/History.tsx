@@ -111,6 +111,11 @@ export default function () {
             key: 'status',
         },
         {
+            title: 'Price',
+            key: 'price',
+            render: (_, record) => SwapDriection.Bch2Sbch ? record.marketMaker.bchPrice : record.marketMaker.sbchPrice,
+        },
+        {
             title: 'Create Time',
             key: 'createAt',
             render: (_, record) => changeTimestampToDataFormat(record.info.createAt),
@@ -201,7 +206,7 @@ export default function () {
                 await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized.` })
             }
             showLoading()
-            const tx = await htlcBCH.receive(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, 546, true)
+            const tx = await htlcBCH.unlock(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, 546, true)
             const txid = await wallet.submitTransaction(hexToBin(tx as string))
             record.status = RecordStatus.Completed
             setList([...list])

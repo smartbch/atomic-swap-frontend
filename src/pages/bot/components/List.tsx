@@ -84,9 +84,14 @@ export default function () {
             key: 'penaltyBPS',
         },
         {
-            title: 'Fee(‱)',
-            dataIndex: 'feeBPS',
-            key: 'feeBPS',
+            title: 'BCH Price',
+            dataIndex: 'bchPrice',
+            key: 'bchPrice',
+        },
+        {
+            title: 'SBCH Price',
+            dataIndex: 'sbchPrice',
+            key: 'sbchPrice',
         },
         {
             title: 'Swap Amount Range',

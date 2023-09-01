@@ -9,6 +9,7 @@ import {
   createRecipient,
   createUnsignedTx,
   encodeBE2,
+  encodeBE8,
   mnUtxoToCSUtxo,
 } from "./common";
 
@@ -18,22 +19,22 @@ pragma cashscript ^0.8.0;
 
 // Hash Time Locked Contract v5
 contract HTLC(bytes20 senderPKH,
-              bytes20 recipientPKH,
+              bytes20 receiverPKH,
               bytes32 secretLock,
               int expiration,
               int penaltyBPS) {
 
-    // receive by recipient
-    function receive(bytes32 secret) {
+    // recipient unlock the coins
+    function unlock(bytes32 secret) {
         require(this.activeInputIndex == 0);
         require(sha256(secret) == secretLock);
 
-        bytes recipientLock = new LockingBytecodeP2PKH(recipientPKH);
+        bytes recipientLock = new LockingBytecodeP2PKH(receiverPKH);
         require(tx.outputs[0].lockingBytecode == recipientLock);
         require(tx.outputs[0].value >= tx.inputs[0].value - 2000);
     }
 
-    // refund by sender
+    // sender refund the coins after expiration
     function refund() {
         require(this.activeInputIndex == 0);
         require(tx.age >= expiration);
@@ -47,7 +48,7 @@ contract HTLC(bytes20 senderPKH,
             penalty = lockedVal * penaltyBPS / 10000;
             refundVal = lockedVal - penalty;
 
-            bytes recipientLock = new LockingBytecodeP2PKH(recipientPKH);
+            bytes recipientLock = new LockingBytecodeP2PKH(receiverPKH);
             require(tx.outputs[1].lockingBytecode == recipientLock);
             require(tx.outputs[1].value >= penalty);
         }
@@ -72,13 +73,14 @@ export class HTLC {
     return Buffer.from(sha256.hash(secretData)).toString('hex');
   }
 
-  // OP_RETURN "SBAS" <recipient pkh> <sender pkh> <hash lock> <expiration> <penalty bps> <sbch user address>
-  static makeOpRetData(senderPkh   : string,
-                       recipientPkh: string,
-                       hashLock    : string,
-                       expiration  : number,
-                       penaltyBPS  : number,
-                       sbchAddr    : string) {
+  // OP_RETURN "SBAS" <recipient pkh> <sender pkh> <hash lock> <expiration> <penalty bps> <sbch user address> <expected price>
+  static makeOpRetData(senderPkh    : string,
+                       recipientPkh : string,
+                       hashLock     : string,
+                       expiration   : number,
+                       penaltyBPS   : number,
+                       sbchAddr     : string,
+                       expectedPrice: number) {
     return Buffer.concat([
       // Buffer.from([0x6a]), // OP_RETURN
       Buffer.from([ 4]), Buffer.from("SBAS"),
@@ -88,6 +90,7 @@ export class HTLC {
       Buffer.from([ 2]), encodeBE2(expiration),
       Buffer.from([ 2]), encodeBE2(penaltyBPS),
       Buffer.from([20]), hexToBuffer(sbchAddr),
+      Buffer.from([ 8]), encodeBE8(expectedPrice),
     ]);
   }
 
@@ -98,10 +101,11 @@ export class HTLC {
     return new Contract(htlc5, args, this.wallet.network);
   }
 
-  async send(toCashAddr: string,
-             toSbchAddr: string,
-             hashLock  : string,
-             amount    : number,
+  async lock(toCashAddr   : string,
+             toSbchAddr   : string,
+             hashLock     : string,
+             amount       : number,
+             expectedPrice: number,
              buildUnsigned = false) {
     const senderPkh = cashAddrToPkh(this.wallet.getDepositAddress());
     const recipientPkh = cashAddrToPkh(toCashAddr);
@@ -111,7 +115,7 @@ export class HTLC {
     console.log('hashLock    :', hashLock);
 
     const opRetData = HTLC.makeOpRetData(senderPkh, recipientPkh, hashLock,
-        this.expiration, this.penaltyBPS, toSbchAddr);
+        this.expiration, this.penaltyBPS, toSbchAddr, expectedPrice);
     console.log('opRetData   :', opRetData.toString('hex'));
 
     const reqs: any = [new SendRequest({
@@ -131,10 +135,10 @@ export class HTLC {
     return this.wallet.send(reqs);
   }
 
-  async receive(fromCashAddr: string,
-                secretHex   : string, // 32 bytes
-                minerFee = 1000,
-                dryRun = false) {
+  async unlock(fromCashAddr: string,
+               secretHex   : string, // 32 bytes
+               minerFee = 1000,
+               dryRun = false) {
     const senderPkh = cashAddrToPkh(fromCashAddr);
     const recipientPkh = cashAddrToPkh(this.wallet.getDepositAddress());
     const hashLock = HTLC.getHashLock(secretHex);
@@ -158,7 +162,7 @@ export class HTLC {
     const output = createRecipient(this.wallet.getDepositAddress(), Number(gotAmt));
     console.log('output:', output);
 
-    const fn = contract!.getContractFunction("receive");
+    const fn = contract!.getContractFunction("unlock");
     const builder = fn(secretHex)
       .from([input])
       .to([output])
