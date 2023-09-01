@@ -108,7 +108,7 @@ const App: React.FC = () => {
           <Dropdown menu={{ items }}>
             <a onClick={(e) => e.preventDefault()}>
               <Space>
-                {CONFIG.MAINNET ? "Mainnet" : "Testnet"}
+                legacy
                 <DownOutlined />
               </Space>
             </a>
