@@ -23,7 +23,7 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   // <React.StrictMode>
-  <Router basename={process.env.NODE_ENV === "production" && !config.MAINNET && 'chipnet' || ''}>
+  <Router basename={'legacy'}>
     <App />
   </Router>
   // </React.StrictMode>
