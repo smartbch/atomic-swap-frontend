@@ -14,7 +14,7 @@ export enum RecordStatus {
 }
 
 //todo: transfer this file to db.ts
-export const db: any = new Dexie('AtomicSwapEther');
+export const db: any = new Dexie('AtomicSwapEther-1');
 
 db.version(1).stores({
     Records: '++id, direction, account, secretLock, status, openTxId',

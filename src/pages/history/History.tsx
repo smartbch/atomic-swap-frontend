@@ -60,7 +60,7 @@ async function getBchLockRecords(makers: MarketMaker[], account: string, bchAcco
         }
         const items = v.vout[1].scriptPubKey.asm.split(" ")
         const pkh = cashAddrToPkh(bchAccount).replace("0x", '')
-        if (items[0] === "OP_RETURN" && items[3] === pkh && items[7] === account.replace("0x", '').toLowerCase()) {
+        if (items.length === 8 && items[0] === "OP_RETURN" && items[3] === pkh && items[7] === account.replace("0x", '').toLowerCase()) {
             const _secretLock = `0x${items[4]}`
             const bchPkh = items[2]
             const maker = makers.find(x => x.bchPkh === `0x${bchPkh}`)!

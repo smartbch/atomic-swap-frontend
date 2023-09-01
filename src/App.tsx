@@ -19,6 +19,9 @@ const App: React.FC = () => {
     if (window.location.pathname.includes("/chipnet/") && window.location.pathname !== "/chipnet" && window.location.pathname !== "/chipnet/") {
       window.location.href = "/chipnet"
       return
+    } if (window.location.pathname.includes("/legacy/") && window.location.pathname !== "/legacy" && window.location.pathname !== "/legacy/") {
+      window.location.href = "/legacy"
+      return
     }
     const init = async () => {
       try {
@@ -70,19 +73,28 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   const items: MenuProps['items'] = [
+    !CONFIG.MAINNET ?
+      {
+        key: '1',
+        label: (
+          <a target="_self" rel="noopener noreferrer" href="/">
+            Mainnet
+          </a>
+        ),
+      }
+      : {
+        key: '2',
+        label: (
+          <a target="_self" rel="noopener noreferrer" href="/chipnet">
+            Testnet
+          </a>
+        ),
+      },
     {
-      key: '1',
+      key: '3',
       label: (
-        <a target="_self" rel="noopener noreferrer" href="/">
-          Mainnet
-        </a>
-      ),
-    },
-    {
-      key: '2',
-      label: (
-        <a target="_self" rel="noopener noreferrer" href="/chipnet">
-          Testnet
+        <a target="_self" rel="noopener noreferrer" href="/legacy">
+          Legacy
         </a>
       ),
     }
