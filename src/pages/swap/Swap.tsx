@@ -18,13 +18,16 @@ import { hexToBin } from '@bitauth/libauth';
 import CONFIG from '../../CONFIG';
 import { getProvider } from '../../utils/web3';
 import { useStore } from '../../common/store';
+import toPrecision from '../../utils/precision';
 
 type BotMarketMaker = MarketMaker & { BCHBalance: string, SBCHBalance: string }
+
+const defaultDirection = SwapDriection.Bch2Sbch
 
 const Swap: React.FC = () => {
     const { state, setStoreItem } = useStore()
     const [marketMakers, setMarketMakers] = useState<(BotMarketMaker[])>([])
-    const [direction, setDirection] = useState<SwapDriection>(SwapDriection.Sbch2Bch)
+    const [direction, setDirection] = useState<SwapDriection>(defaultDirection)
     useEffect(() => {
         const fetch = async () => {
             let marketMakers = await getMarketMakers()
@@ -54,7 +57,7 @@ const Swap: React.FC = () => {
 
     const [form] = Form.useForm<{ direction: SwapDriection, marketMakerAddr: string, amount: number }>();
     const onFormLayoutChange = ({ direction: direction_ }: { direction: SwapDriection }) => {
-        setDirection(direction_);
+        setDirection(direction_ || direction);
     };
     const onFinish = wrapOperation(async () => {
         if (!state.bchAccount) {
@@ -71,23 +74,24 @@ const Swap: React.FC = () => {
         if (values.amount > Number(marketMaker.maxSwapAmt)) {
             throw new Error(`Amount must less than ${marketMaker.maxSwapAmt}`)
         }
-        const price = values.direction === SwapDriection.Sbch2Bch ? marketMaker.sbchPrice : marketMaker.bchPrice
-        const receivedAmount = BigNumber(values.amount).multipliedBy(price).toString()
+        const expectedPrice = values.direction === SwapDriection.Sbch2Bch ? marketMaker.sbchPrice : marketMaker.bchPrice
+        const expectedAmount = BigNumber(values.amount).multipliedBy(expectedPrice).toString()
         if (values.direction === SwapDriection.Sbch2Bch) {
-            if (Number(receivedAmount) > Number((marketMaker as any).BCHBalance)) {
+            if (Number(expectedAmount) > Number((marketMaker as any).BCHBalance)) {
                 throw new Error("Insufficient balance")
             }
         } else {
-            if (Number(receivedAmount) > Number((marketMaker as any).SBCHBalance)) {
+            if (Number(expectedAmount) > Number((marketMaker as any).SBCHBalance)) {
                 throw new Error("Insufficient balance")
             }
         }
-        await confirmOperation({ content: `You will receive ${receivedAmount} ${values.direction === SwapDriection.Sbch2Bch ? "BCH" : "SBCH"}.` })
+        await confirmOperation({ content: `You will receive ${expectedAmount} ${values.direction === SwapDriection.Sbch2Bch ? "BCH" : "SBCH"}.` })
         showLoading()
         const secret = Buffer.from(window.crypto.getRandomValues(new Uint8Array(32))).toString('hex')
         const hashLock = `0x${HTLC.getHashLock(secret)}`
         const walletPkh = await cashAddrToPkh(state.bchAccount)
         const info = {
+            expectedPrice,
             secret, createAt: new Date().getTime(),
             marketMakerAddr: marketMaker.addr, marketMakerBchPkh: marketMaker.bchPkh,
             amount: ethers.utils.parseEther(values.amount.toString()).toString(), walletPkh, penaltyBPS: marketMaker.penaltyBPS
@@ -101,7 +105,7 @@ const Swap: React.FC = () => {
                 marketMaker.addr, hashLock,
                 marketMaker.sbchLockTime, `0x${walletPkh}`,
                 info.penaltyBPS, true,
-                ethers.utils.parseEther(price),
+                ethers.utils.parseEther(expectedPrice),
                 { value: ethers.utils.parseEther(values.amount.toString()) }
             )
             await updateRecord(recordId, { openTxId: tx0.hash })
@@ -112,7 +116,7 @@ const Swap: React.FC = () => {
             recordId = await insertRecord(state.bchAccount, SwapDriection.Bch2Sbch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
             const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
             const htclBCH = new HTLC(wallet as any, marketMaker.bchLockTime, info.penaltyBPS)
-            const unSignedTx = await htclBCH.lock(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), Math.round(Number(price) * 1e8), true)
+            const unSignedTx = await htclBCH.lock(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), Math.round(Number(expectedPrice) * 1e8), true)
             const signedTx = await signTx(unSignedTx);
             const txId = await wallet.submitTransaction(hexToBin(signedTx))
             await updateRecord(recordId, { openTxId: txId, status: RecordStatus.New })
@@ -127,7 +131,7 @@ const Swap: React.FC = () => {
                 labelCol={{ span: 8 }}
                 wrapperCol={{ span: 16 }}
                 style={{ maxWidth: 600, margin: "0 auto" }}
-                initialValues={{ direction: SwapDriection.Sbch2Bch }}
+                initialValues={{ direction: defaultDirection }}
                 onValuesChange={onFormLayoutChange}
                 onFinish={onFinish}
                 autoComplete="off"
@@ -138,12 +142,12 @@ const Swap: React.FC = () => {
                         <Radio value={SwapDriection.Sbch2Bch}> SmartBCH {"->"} Bch </Radio>
                     </Radio.Group>
                 </Form.Item>
-                <Form.Item label="MarketMaker" name="marketMakerAddr" rules={[{ required: true }]} >
+                <Form.Item label="Bot" name="marketMakerAddr" rules={[{ required: true }]} >
                     <Select>
                         {marketMakers.map(({ addr, intro, bchPrice, sbchPrice, BCHBalance, SBCHBalance }) => <Select.Option key={addr} value={addr}>
                             {direction === SwapDriection.Bch2Sbch
-                                ? `${intro}(1BCH==${bchPrice}SBCH)(SBCHBalance:${SBCHBalance})`
-                                : `${intro}(1SBCH==${sbchPrice}BCH)(BCHBalance:${BCHBalance})`}
+                                ? `${intro}(1BCH==${bchPrice}SBCH)(SBCHBalance:${toPrecision(SBCHBalance, 2)})`
+                                : `${intro}(1SBCH==${sbchPrice}BCH)(BCHBalance:${toPrecision(BCHBalance, 2)})`}
                         </Select.Option>)}
                     </Select>
                 </Form.Item>

@@ -137,6 +137,7 @@ export class HTLC {
 
   async unlock(fromCashAddr: string,
                secretHex   : string, // 32 bytes
+               minSatoshis: number,
                minerFee = 1000,
                dryRun = false) {
     const senderPkh = cashAddrToPkh(fromCashAddr);
@@ -152,6 +153,9 @@ export class HTLC {
     const lockedUtxo = lockedUtxos[0]
     if (!lockedUtxo) {
       throw new Error("covenant UTXO not found !");
+    }
+    if(lockedUtxo.satoshis < minSatoshis) {
+      throw new Error("Incorect satoshis!");
     }
     console.log('lockedUtxo:', lockedUtxo);
 

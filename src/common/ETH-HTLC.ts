@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import CONFIG from "../CONFIG";
 import { getContract, getProvider } from "../utils/web3";
+
 const ABI = [
 	{
 		"inputs": [
@@ -236,6 +237,11 @@ const ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
 				"internalType": "bytes32",
 				"name": "secretLock",
 				"type": "bytes32"
@@ -389,6 +395,11 @@ const ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
 				"internalType": "bytes32",
 				"name": "_secretLock",
 				"type": "bytes32"
@@ -480,6 +491,11 @@ const ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
 				"internalType": "bytes32",
 				"name": "",
 				"type": "bytes32"
@@ -541,6 +557,11 @@ const ABI = [
 				"internalType": "bytes32",
 				"name": "secretKey",
 				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "expectedPrice",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -548,6 +569,11 @@ const ABI = [
 	},
 	{
 		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
 			{
 				"internalType": "bytes32",
 				"name": "_secretLock",
