@@ -82,7 +82,7 @@ const App: React.FC = () => {
       key: '2',
       label: (
         <a target="_self" rel="noopener noreferrer" href="/chipnet">
-          Testnet
+          Chipnet
         </a>
       ),
     }
