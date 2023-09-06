@@ -304,6 +304,59 @@ const ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "address payable",
+				"name": "_receiver",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_validPeriod",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes20",
+				"name": "_receiverBchPkh",
+				"type": "bytes20"
+			},
+			{
+				"internalType": "uint16",
+				"name": "_penaltyBPS",
+				"type": "uint16"
+			},
+			{
+				"internalType": "bool",
+				"name": "_receiverIsMM",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_expectedPrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_oldSender",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_oldSecretLock",
+				"type": "bytes32"
+			}
+		],
+		"name": "lock2",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "addr",
 				"type": "address"
@@ -396,7 +449,7 @@ const ABI = [
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "sender",
+				"name": "_sender",
 				"type": "address"
 			},
 			{
@@ -571,7 +624,7 @@ const ABI = [
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "sender",
+				"name": "_sender",
 				"type": "address"
 			},
 			{
@@ -586,6 +639,39 @@ const ABI = [
 			}
 		],
 		"name": "unlock",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_sender",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretKey",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "_oldSender",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_oldSecretLock",
+				"type": "bytes32"
+			}
+		],
+		"name": "unlock2",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
