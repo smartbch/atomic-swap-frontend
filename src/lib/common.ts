@@ -103,3 +103,9 @@ export function encodeBE2(n: number): Buffer {
   timeLock.writeUIntBE(n, 0, 2);
   return timeLock;
 }
+
+export function encodeBE8(n: number): Buffer {
+  const timeLock = Buffer.alloc(8);
+  timeLock.writeUIntBE(n, 2, 6);
+  return timeLock;
+}

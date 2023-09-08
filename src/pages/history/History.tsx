@@ -18,6 +18,7 @@ import { useStore } from "../../common/store";
 import CONFIG from "../../CONFIG";
 import { reverseHexBytes } from "../../common/utils";
 import { bch2Satoshis } from "../../utils/bch";
+import BigNumber from "bignumber.js";
 
 async function getSbchLockRecords(makers: MarketMaker[], account: string, bchAccount: string) {
     // get events from sbch
@@ -37,6 +38,7 @@ async function getSbchLockRecords(makers: MarketMaker[], account: string, bchAcc
             status: RecordStatus.New,
             openTxId: transactionHash,
             info: {
+                expectedPrice: ethers.utils.formatEther(args._expectedPrice),
                 amount: args._value.toString(),
                 createAt: Number(args._createdTime.toString()) * 1000,
                 walletPkh: cashAddrToPkh(bchAccount)
@@ -60,7 +62,7 @@ async function getBchLockRecords(makers: MarketMaker[], account: string, bchAcco
         }
         const items = v.vout[1].scriptPubKey.asm.split(" ")
         const pkh = cashAddrToPkh(bchAccount).replace("0x", '')
-        if (items[0] === "OP_RETURN" && items[3] === pkh && items[7] === account.replace("0x", '').toLowerCase()) {
+        if (items.length === 9 && items[0] === "OP_RETURN" && items[3] === pkh && items[7] === account.replace("0x", '').toLowerCase()) {
             const _secretLock = `0x${items[4]}`
             const bchPkh = items[2]
             const maker = makers.find(x => x.bchPkh === `0x${bchPkh}`)!
@@ -74,6 +76,7 @@ async function getBchLockRecords(makers: MarketMaker[], account: string, bchAcco
                 status: RecordStatus.New,
                 openTxId: v.txid,
                 info: {
+                    expectedPrice: Number(`0x${v.vout[1].scriptPubKey.hex.slice(-16)}`) / 1e8,
                     amount: ethers.utils.parseEther(v.vout[0].value.toString()).toString(),
                     createAt: v.time * 1000,
                     walletPkh: cashAddrToPkh(bchAccount)
@@ -109,6 +112,11 @@ export default function () {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
+        },
+        {
+            title: 'Price',
+            key: 'price',
+            render: (_, record) => record.direction === SwapDriection.Bch2Sbch ? record.marketMaker.bchPrice : record.marketMaker.sbchPrice,
         },
         {
             title: 'Create Time',
@@ -185,7 +193,7 @@ export default function () {
         if (record.direction === SwapDriection.Bch2Sbch) {
             showLoading()
             const contract = await getAtomicSwapEther()
-            const tx = await contract.unlock(record.hashLock, `0x${record.info.secret}`)
+            const tx = await contract.unlock(record.marketMaker.addr, record.hashLock, `0x${record.info.secret}`)
             await updateRecord(record.id, { closeTxId: tx.hash })
             await tx.wait()
             record.status = RecordStatus.Completed
@@ -201,7 +209,8 @@ export default function () {
                 await confirmOperation({ content: `The transaction has only ${confirmations} confirmations and blocks may be reorganized.` })
             }
             showLoading()
-            const tx = await htlcBCH.receive(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, 546, true)
+            const expectedAmount = bch2Satoshis(BigNumber(ethers.utils.formatEther(record.info.amount)).multipliedBy(record.info.expectedPrice).toString())
+            const tx = await htlcBCH.unlock(pkhToCashAddr(record.marketMaker.bchPkh, wallet.network), `0x${record.info.secret}`, Number(expectedAmount), 546, true)
             const txid = await wallet.submitTransaction(hexToBin(tx as string))
             record.status = RecordStatus.Completed
             setList([...list])
@@ -221,7 +230,7 @@ export default function () {
             await updateRecord(record.id, { status: RecordStatus.Refunded, refundTxId: txid })
         } else {
             const contract = await getAtomicSwapEther()
-            const tx0 = await contract.refund(record.hashLock)
+            const tx0 = await contract.refund(state.account, record.hashLock)
             await updateRecord(record.id, { refundTxId: tx0.hash })
             await tx0.wait()
             record.status = RecordStatus.Refunded

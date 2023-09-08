@@ -18,11 +18,11 @@ export default function () {
         addr: string,
         retiredAt: any,
         intro: string,
+        bchPrice: string,
+        sbchPrice: string,
         botAddr: string,
         bchLockTime: string, // in blocks
-        // sbchLockTime: string,// in seconds
         penaltyBPS: string,
-        feeBPS: string,
         minSwapAmt: string,
         maxSwapAmt: string,
         statusChecker: string
@@ -32,7 +32,7 @@ export default function () {
     useEffect(() => {
         const init = async () => {
             const atomicSwapEther = await getAtomicSwapEther()
-            const marketMaker = await atomicSwapEther.marketMakers(await getAccount());
+            const marketMaker = await atomicSwapEther.marketMakerByAddress(await getAccount());
             if (marketMaker.addr !== ethers.constants.AddressZero) {
                 const retiredAt = marketMaker.retiredAt.toNumber()
                 form.setFieldsValue({
@@ -42,7 +42,8 @@ export default function () {
                     botAddr: pkhToCashAddr(marketMaker.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet"),
                     bchLockTime: marketMaker.bchLockTime,
                     penaltyBPS: marketMaker.penaltyBPS,
-                    feeBPS: marketMaker.feeBPS,
+                    bchPrice: ethers.utils.formatEther(marketMaker.bchPrice.toString()),
+                    sbchPrice: ethers.utils.formatEther(marketMaker.sbchPrice.toString()),
                     minSwapAmt: ethers.utils.formatEther(marketMaker.minSwapAmt.toString()),
                     maxSwapAmt: ethers.utils.formatEther(marketMaker.maxSwapAmt.toString()),
                     statusChecker: marketMaker.statusChecker,
@@ -60,9 +61,14 @@ export default function () {
         const values = form.getFieldsValue()
         const atomicSwapEther = await getAtomicSwapEther()
         const MIN_STAKED_VALUE = await atomicSwapEther.MIN_STAKED_VALUE()
+        if (!((Number(values.bchPrice) == 1 && Number(values.sbchPrice) == 1) || values.penaltyBPS == "0")) {
+            throw new Error("PenaltyBPS must be equal to 0 when bchPrice and sbchPrice are not equal to 1");
+        }
         const tx = await atomicSwapEther.registerMarketMaker(
             ethers.utils.formatBytes32String(values.intro), `0x${cashAddrToPkh(values.botAddr)}`,
-            values.bchLockTime, values.penaltyBPS, values.feeBPS,
+            values.bchLockTime, values.penaltyBPS,
+            ethers.utils.parseEther(values.bchPrice),
+            ethers.utils.parseEther(values.sbchPrice),
             ethers.utils.parseEther(values.minSwapAmt), ethers.utils.parseEther(values.maxSwapAmt),
             values.statusChecker, { value: MIN_STAKED_VALUE }
         )
@@ -75,7 +81,12 @@ export default function () {
         showLoading()
         // update
         const atomicSwapEther = await getAtomicSwapEther()
-        const tx = await atomicSwapEther.updateMarketMaker(ethers.utils.formatBytes32String(form.getFieldsValue().intro));
+        const data = form.getFieldsValue()
+        const tx = await atomicSwapEther.updateMarketMaker(
+            ethers.utils.formatBytes32String(data.intro),
+            ethers.utils.parseEther(data.bchPrice),
+            ethers.utils.parseEther(data.sbchPrice),
+        );
         await tx.wait()
     }, "Update info success")
 
@@ -85,7 +96,7 @@ export default function () {
         const atomicSwapEther = await getAtomicSwapEther()
         const tx = await atomicSwapEther.retireMarketMaker();
         await tx.wait()
-        const { retiredAt } = await atomicSwapEther.marketMakers(state.account)
+        const { retiredAt } = await atomicSwapEther.marketMakerByAddress(state.account)
         form.setFieldsValue({ retiredAt: changeTimestampToDataFormat(retiredAt.toNumber() * 1000) })
         setStoreItem({})
     }, "Retire success")
@@ -128,17 +139,17 @@ export default function () {
             rules={[{ required: true, message: 'bchLockTime is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        {/* <Form.Item name="sbchLockTime" label="Sbch Lock Time(seconds)"
-            rules={[{ required: true, message: 'sbchLockTime is required' }]} >
-            <Input disabled={hasCreated} />
-        </Form.Item> */}
         <Form.Item name="penaltyBPS" label="Penalty(‱)"
             rules={[{ required: true, message: 'penaltyBPS is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="feeBPS" label="Fee(‱)"
-            rules={[{ required: true, message: 'feeBPS is required' }]} >
-            <Input disabled={hasCreated} />
+        <Form.Item name="bchPrice" label="BCH Price"
+            rules={[{ required: true, message: 'BCH Price is required' }]} >
+            <Input suffix={hasCreated && <Button type="primary" onClick={updateInfo}>Update</Button>} />
+        </Form.Item>
+        <Form.Item name="sbchPrice" label="SBCH Price"
+            rules={[{ required: true, message: 'SBCH Price is required' }]} >
+            <Input suffix={hasCreated && <Button type="primary" onClick={updateInfo}>Update</Button>} />
         </Form.Item>
         <Form.Item name="minSwapAmt" label="Min Swap Amount"
             rules={[{ required: true, message: 'minSwapAmt is required' }]} >

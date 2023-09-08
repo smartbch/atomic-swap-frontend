@@ -1,9 +1,13 @@
+import BigNumber from "bignumber.js"
 import { getAtomicSwapEther } from "../../common/ETH-HTLC"
 import { getWalletClass } from "../../common/bch-wallet"
 import { SwapDriection } from "../../common/constants"
 import { RecordStatus, SwapRecord, updateRecord } from "../../common/db"
 import { HTLC } from "../../lib/HTLC"
 import { cashAddrToPkh } from "../../lib/common"
+import { getAccount } from "../../utils/web3"
+import { ethers } from "ethers"
+import { satoshis2Bch } from "../../utils/bch"
 
 export function needSynced(record: SwapRecord) {
     return ![RecordStatus.Completed, RecordStatus.Refunded, RecordStatus.Invalid].includes(record.status)
@@ -14,13 +18,16 @@ async function syncBch2SbchRecord(record: SwapRecord) {
         return record
     }
     const contract = await getAtomicSwapEther()
-    const swapState = (await contract.swaps(record.hashLock)).state
-    if (swapState == 1) {
-        await updateRecord(record.id, { status: RecordStatus.Matched })
-        record.status = RecordStatus.Matched
-        return record
+    const swap = (await contract.swaps(record.marketMaker.addr, record.hashLock))
+    if (swap.state == 1) {
+        const expectedAmount = BigNumber(ethers.utils.formatEther(record.info.amount)).multipliedBy(record.info.expectedPrice).toNumber()
+        if (Number(ethers.utils.formatEther(swap.value)) >= expectedAmount) {
+            await updateRecord(record.id, { status: RecordStatus.Matched })
+            record.status = RecordStatus.Matched
+            return record
+        }
     }
-    if (swapState == 2) {
+    if (swap.state == 2) {
         await updateRecord(record.id, { status: RecordStatus.Completed })
         record.status = RecordStatus.Completed
         return record
@@ -80,7 +87,7 @@ async function syncSbch2BchRecord(record: SwapRecord) {
     const now = new Date().getTime()
 
     const contract = await getAtomicSwapEther()
-    const swapState = (await contract.swaps(record.hashLock)).state
+    const swapState = (await contract.swaps(await getAccount(), record.hashLock)).state
 
     if (swapState === 2) { // user receice bch then bot received
         await updateRecord(record.id, { status: RecordStatus.Completed })
@@ -108,9 +115,12 @@ async function syncSbch2BchRecord(record: SwapRecord) {
     const b = utxos[0]
 
     if (b) {
-        record.status = RecordStatus.Matched
-        await updateRecord(record.id, { status: RecordStatus.Matched })
-        return record
+        const expectedAmount = BigNumber(ethers.utils.formatEther(record.info.amount)).multipliedBy(record.info.expectedPrice).toNumber()
+        if (Number(satoshis2Bch(b.satoshis)) >= expectedAmount) {
+            record.status = RecordStatus.Matched
+            await updateRecord(record.id, { status: RecordStatus.Matched })
+            return record
+        }
     }
 
     if (swapState === 1 && !b && now > createAt + record.marketMaker.sbchLockTime * 1000 / 2 && now < expiredTime) {

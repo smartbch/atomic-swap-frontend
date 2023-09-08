@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import CONFIG from "../CONFIG";
 import { getContract, getProvider } from "../utils/web3";
+
 const ABI = [
 	{
 		"inputs": [
@@ -68,6 +69,12 @@ const ABI = [
 				"internalType": "uint16",
 				"name": "_penaltyBPS",
 				"type": "uint16"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "_expectedPrice",
+				"type": "uint256"
 			}
 		],
 		"name": "Lock",
@@ -184,9 +191,14 @@ const ABI = [
 						"type": "uint16"
 					},
 					{
-						"internalType": "uint16",
-						"name": "feeBPS",
-						"type": "uint16"
+						"internalType": "uint256",
+						"name": "bchPrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "sbchPrice",
+						"type": "uint256"
 					},
 					{
 						"internalType": "uint256",
@@ -224,6 +236,11 @@ const ABI = [
 	},
 	{
 		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
 			{
 				"internalType": "bytes32",
 				"name": "secretLock",
@@ -272,6 +289,11 @@ const ABI = [
 				"internalType": "bool",
 				"name": "_receiverIsMM",
 				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_expectedPrice",
+				"type": "uint256"
 			}
 		],
 		"name": "lock",
@@ -282,77 +304,142 @@ const ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "",
+				"internalType": "address payable",
+				"name": "_receiver",
 				"type": "address"
-			}
-		],
-		"name": "marketMakers",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "addr",
-				"type": "address"
-			},
-			{
-				"internalType": "uint64",
-				"name": "retiredAt",
-				"type": "uint64"
 			},
 			{
 				"internalType": "bytes32",
-				"name": "intro",
+				"name": "_secretLock",
 				"type": "bytes32"
 			},
 			{
+				"internalType": "uint256",
+				"name": "_validPeriod",
+				"type": "uint256"
+			},
+			{
 				"internalType": "bytes20",
-				"name": "bchPkh",
+				"name": "_receiverBchPkh",
 				"type": "bytes20"
 			},
 			{
 				"internalType": "uint16",
-				"name": "bchLockTime",
+				"name": "_penaltyBPS",
 				"type": "uint16"
 			},
 			{
-				"internalType": "uint32",
-				"name": "sbchLockTime",
-				"type": "uint32"
-			},
-			{
-				"internalType": "uint16",
-				"name": "penaltyBPS",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint16",
-				"name": "feeBPS",
-				"type": "uint16"
+				"internalType": "bool",
+				"name": "_receiverIsMM",
+				"type": "bool"
 			},
 			{
 				"internalType": "uint256",
-				"name": "minSwapAmt",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "maxSwapAmt",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "stakedValue",
+				"name": "_expectedPrice",
 				"type": "uint256"
 			},
 			{
 				"internalType": "address",
-				"name": "statusChecker",
+				"name": "_oldSender",
 				"type": "address"
 			},
 			{
-				"internalType": "bool",
-				"name": "unavailable",
-				"type": "bool"
+				"internalType": "bytes32",
+				"name": "_oldSecretLock",
+				"type": "bytes32"
+			}
+		],
+		"name": "lock2",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "addr",
+				"type": "address"
+			}
+		],
+		"name": "marketMakerByAddress",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					},
+					{
+						"internalType": "uint64",
+						"name": "retiredAt",
+						"type": "uint64"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "intro",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes20",
+						"name": "bchPkh",
+						"type": "bytes20"
+					},
+					{
+						"internalType": "uint16",
+						"name": "bchLockTime",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint32",
+						"name": "sbchLockTime",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint16",
+						"name": "penaltyBPS",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint256",
+						"name": "bchPrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "sbchPrice",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "minSwapAmt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxSwapAmt",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "stakedValue",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "statusChecker",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "unavailable",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct AtomicSwapEther.MarketMaker",
+				"name": "",
+				"type": "tuple"
 			}
 		],
 		"stateMutability": "view",
@@ -360,6 +447,11 @@ const ABI = [
 	},
 	{
 		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_sender",
+				"type": "address"
+			},
 			{
 				"internalType": "bytes32",
 				"name": "_secretLock",
@@ -394,9 +486,14 @@ const ABI = [
 				"type": "uint16"
 			},
 			{
-				"internalType": "uint16",
-				"name": "_feeBPS",
-				"type": "uint16"
+				"internalType": "uint256",
+				"name": "_bchPrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_sbchPrice",
+				"type": "uint256"
 			},
 			{
 				"internalType": "uint256",
@@ -446,6 +543,11 @@ const ABI = [
 	},
 	{
 		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
 			{
 				"internalType": "bytes32",
 				"name": "",
@@ -508,6 +610,11 @@ const ABI = [
 				"internalType": "bytes32",
 				"name": "secretKey",
 				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "expectedPrice",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -515,6 +622,11 @@ const ABI = [
 	},
 	{
 		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_sender",
+				"type": "address"
+			},
 			{
 				"internalType": "bytes32",
 				"name": "_secretLock",
@@ -534,9 +646,52 @@ const ABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "address",
+				"name": "_sender",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretLock",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_secretKey",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "_oldSender",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_oldSecretLock",
+				"type": "bytes32"
+			}
+		],
+		"name": "unlock2",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "bytes32",
 				"name": "_intro",
 				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_bchPrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_sbchPrice",
+				"type": "uint256"
 			}
 		],
 		"name": "updateMarketMaker",
@@ -560,11 +715,12 @@ export async function getAtomicSwapEther() {
 export interface MarketMaker {
 	addr: string
 	intro: string
+	bchPrice: string
+	sbchPrice: string
 	bchPkh: string
 	bchLockTime: number
 	sbchLockTime: number
 	penaltyBPS: number
-	feeBPS: number
 	minSwapAmt: string
 	maxSwapAmt: string
 	stakedValue: string
@@ -575,8 +731,14 @@ export async function getMarketMakers(): Promise<MarketMaker[]> {
 	const atomicSwapEther = await getAtomicSwapEther()
 	let makers = await atomicSwapEther.getMarketMakers(0, 100)
 	makers = makers.filter((v: any) => !v.unavailable && v.retiredAt.toNumber() < new Date().getTime())
-	return makers.map(({ stakedValue, addr, intro, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, minSwapAmt, maxSwapAmt, retiredAt, statusChecker }: any) => ({
-		addr, intro: ethers.utils.parseBytes32String(intro), bchPkh, bchLockTime, sbchLockTime, penaltyBPS, feeBPS, retiredAt: retiredAt.toNumber(),
+	return makers.map(({ stakedValue, addr, intro, bchPrice, sbchPrice, bchPkh, bchLockTime, sbchLockTime, penaltyBPS, minSwapAmt, maxSwapAmt, retiredAt, statusChecker }: any) => ({
+		addr,
+		intro: ethers.utils.parseBytes32String(intro),
+		bchPkh, bchLockTime, sbchLockTime,
+		penaltyBPS,
+		bchPrice: ethers.utils.formatEther(bchPrice.toString()).toString(),
+		sbchPrice: ethers.utils.formatEther(sbchPrice.toString()).toString(),
+		retiredAt: retiredAt.toNumber(),
 		minSwapAmt: ethers.utils.formatEther(minSwapAmt.toString()).toString(), maxSwapAmt: ethers.utils.formatEther(maxSwapAmt.toString()).toString(), statusChecker,
 		stakedValue: stakedValue.toString()
 	}))

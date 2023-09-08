@@ -18,17 +18,22 @@ import { hexToBin } from '@bitauth/libauth';
 import CONFIG from '../../CONFIG';
 import { getProvider } from '../../utils/web3';
 import { useStore } from '../../common/store';
+import toPrecision from '../../utils/precision';
 
 type BotMarketMaker = MarketMaker & { BCHBalance: string, SBCHBalance: string }
+
+const defaultDirection = SwapDriection.Bch2Sbch
 
 const Swap: React.FC = () => {
     const { state, setStoreItem } = useStore()
     const [marketMakers, setMarketMakers] = useState<(BotMarketMaker[])>([])
-    const [direction, setDirection] = useState<SwapDriection>(SwapDriection.Sbch2Bch)
+    const [direction, setDirection] = useState<SwapDriection>(defaultDirection)
     useEffect(() => {
         const fetch = async () => {
-            const marketMakers = await getMarketMakers()
+            let marketMakers = await getMarketMakers()
             console.log("marketMakers", marketMakers)
+            marketMakers = marketMakers.filter(v => (Number(v.bchPrice) == 1 && Number(v.sbchPrice) == 1) || v.penaltyBPS == 0)  // 合法的marketMakers
+            marketMakers = marketMakers.filter(v => v.penaltyBPS < 1000) // 10%不合法
             const provider = getProvider()
             const [SBCHBalances, BCHBalances]: any = await Promise.all([
                 Promise.all(marketMakers.map((v) => provider.getBalance(v.addr).then(ethers.utils.formatEther))),
@@ -37,7 +42,7 @@ const Swap: React.FC = () => {
                         getWalletClass().fromCashaddr(pkhToCashAddr(v.bchPkh, CONFIG.MAINNET ? "mainnet" : "testnet")).then(w => w.getBalance("bch")),
                         getPendingBalance(v.addr)
                     ])
-                    return Number(BCHBalance) - Number(pendingBalance)
+                    return Number(BCHBalance) - Number(pendingBalance) * Number(v.sbchPrice)
                 })),
             ])
 
@@ -52,7 +57,7 @@ const Swap: React.FC = () => {
 
     const [form] = Form.useForm<{ direction: SwapDriection, marketMakerAddr: string, amount: number }>();
     const onFormLayoutChange = ({ direction: direction_ }: { direction: SwapDriection }) => {
-        setDirection(direction_);
+        setDirection(direction_ || direction);
     };
     const onFinish = wrapOperation(async () => {
         if (!state.bchAccount) {
@@ -69,22 +74,24 @@ const Swap: React.FC = () => {
         if (values.amount > Number(marketMaker.maxSwapAmt)) {
             throw new Error(`Amount must less than ${marketMaker.maxSwapAmt}`)
         }
+        const expectedPrice = values.direction === SwapDriection.Sbch2Bch ? marketMaker.sbchPrice : marketMaker.bchPrice
+        const expectedAmount = BigNumber(values.amount).multipliedBy(expectedPrice).toString()
         if (values.direction === SwapDriection.Sbch2Bch) {
-            if (values.amount > Number((marketMaker as any).BCHBalance)) {
+            if (Number(expectedAmount) > Number((marketMaker as any).BCHBalance)) {
                 throw new Error("Insufficient balance")
             }
         } else {
-            if (values.amount > Number((marketMaker as any).SBCHBalance)) {
+            if (Number(expectedAmount) > Number((marketMaker as any).SBCHBalance)) {
                 throw new Error("Insufficient balance")
             }
         }
-        const receivedAmount = BigNumber(ethers.utils.parseEther(values.amount.toString()).mul(10000 - marketMaker.feeBPS).div(10000).toString()).div(ethers.constants.WeiPerEther.toString()).toString()
-        await confirmOperation({ content: `You will receive ${receivedAmount} bch.` })
+        await confirmOperation({ content: `You will receive ${expectedAmount} ${values.direction === SwapDriection.Sbch2Bch ? "BCH" : "SBCH"}.` })
         showLoading()
         const secret = Buffer.from(window.crypto.getRandomValues(new Uint8Array(32))).toString('hex')
         const hashLock = `0x${HTLC.getHashLock(secret)}`
         const walletPkh = await cashAddrToPkh(state.bchAccount)
         const info = {
+            expectedPrice,
             secret, createAt: new Date().getTime(),
             marketMakerAddr: marketMaker.addr, marketMakerBchPkh: marketMaker.bchPkh,
             amount: ethers.utils.parseEther(values.amount.toString()).toString(), walletPkh, penaltyBPS: marketMaker.penaltyBPS
@@ -94,8 +101,13 @@ const Swap: React.FC = () => {
             await setupSmartBCHNetwork()
             const atomicSwapEther = await getAtomicSwapEther()
             recordId = await insertRecord(state.bchAccount, SwapDriection.Sbch2Bch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
-            const tx0 = await atomicSwapEther.lock(marketMaker.addr, hashLock, marketMaker.sbchLockTime, `0x${walletPkh}`, info.penaltyBPS, true,
-                { value: ethers.utils.parseEther(values.amount.toString()) })
+            const tx0 = await atomicSwapEther.lock(
+                marketMaker.addr, hashLock,
+                marketMaker.sbchLockTime, `0x${walletPkh}`,
+                info.penaltyBPS, true,
+                ethers.utils.parseEther(expectedPrice),
+                { value: ethers.utils.parseEther(values.amount.toString()) }
+            )
             await updateRecord(recordId, { openTxId: tx0.hash })
             const tx1 = await tx0.wait()
             await updateRecord(recordId, { status: RecordStatus.New })
@@ -104,7 +116,7 @@ const Swap: React.FC = () => {
             recordId = await insertRecord(state.bchAccount, SwapDriection.Bch2Sbch, hashLock, RecordStatus.Prepare, JSON.parse(JSON.stringify(marketMaker)), info)
             const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
             const htclBCH = new HTLC(wallet as any, marketMaker.bchLockTime, info.penaltyBPS)
-            const unSignedTx = await htclBCH.send(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), true)
+            const unSignedTx = await htclBCH.lock(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), Math.round(Number(expectedPrice) * 1e8), true)
             const signedTx = await signTx(unSignedTx);
             const txId = await wallet.submitTransaction(hexToBin(signedTx))
             await updateRecord(recordId, { openTxId: txId, status: RecordStatus.New })
@@ -119,7 +131,7 @@ const Swap: React.FC = () => {
                 labelCol={{ span: 8 }}
                 wrapperCol={{ span: 16 }}
                 style={{ maxWidth: 600, margin: "0 auto" }}
-                initialValues={{ direction: SwapDriection.Sbch2Bch }}
+                initialValues={{ direction: defaultDirection }}
                 onValuesChange={onFormLayoutChange}
                 onFinish={onFinish}
                 autoComplete="off"
@@ -130,12 +142,12 @@ const Swap: React.FC = () => {
                         <Radio value={SwapDriection.Sbch2Bch}> SmartBCH {"->"} Bch </Radio>
                     </Radio.Group>
                 </Form.Item>
-                <Form.Item label="MarketMaker" name="marketMakerAddr" rules={[{ required: true }]} >
+                <Form.Item label="Bot" name="marketMakerAddr" rules={[{ required: true }]} >
                     <Select>
-                        {marketMakers.map(({ addr, intro, feeBPS, BCHBalance, SBCHBalance }) => <Select.Option key={addr} value={addr}>
+                        {marketMakers.map(({ addr, intro, bchPrice, sbchPrice, BCHBalance, SBCHBalance }) => <Select.Option key={addr} value={addr}>
                             {direction === SwapDriection.Bch2Sbch
-                                ? `${intro}(fee:${feeBPS / 100}%)(SBCHBalance:${SBCHBalance})`
-                                : `${intro}(fee:${feeBPS / 100}%)(BCHBalance:${BCHBalance})`}
+                                ? `${intro}(1BCH==${bchPrice}SBCH)(SBCHBalance:${toPrecision(SBCHBalance, 2)})`
+                                : `${intro}(1SBCH==${sbchPrice}BCH)(BCHBalance:${toPrecision(BCHBalance, 2)})`}
                         </Select.Option>)}
                     </Select>
                 </Form.Item>
