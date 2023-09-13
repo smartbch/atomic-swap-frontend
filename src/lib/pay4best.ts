@@ -1,3 +1,6 @@
+import { Network, Wallet } from "mainnet-js";
+import { decode, encode } from "algo-msgpack-with-bigint";
+
 export async function getBCHAccount(): Promise<string> {
     console.log('getBCHAccount...');
     const account: any = await new Promise((r, _) => {
@@ -25,38 +28,34 @@ export async function getBCHAccount(): Promise<string> {
     return account
 }
 
-export async function signTx(data: any): Promise<any> {
-    return await new Promise((resolve, reject) => {
-        const walletFrame = (window as any).document.getElementById('walletFrame')
-        let targetURL = `${walletFrame.src}&origin=${encodeURI(window.location.origin)}&req=`;
-        const txChannel = new MessageChannel();
-        txChannel.port2.onmessage = function (e) {
-            console.log('I get reqID ', e.data);
-            const reqID = e.data.reqID;
-            console.log("reqID", reqID);
-            targetURL = targetURL + reqID;
+function pack(tx: any) {
+    return base64EncodeURL(encode(tx))
+}
 
-            if (!e.data.ok) { // the browser does not allow us to open a window
-                var myLink: any = document.getElementById("WalletFrame-Link");
-                myLink.href = targetURL;
-                // myLink.style.display = "block";
-                myLink.click()
-            }
-            txChannel.port2.onmessage = function (e) {
-                console.log('I get signed result ', e.data);
-                if (e.data.refused) {
-                    reject(new Error("You refused to sign."))
-                    return
-                }
-                resolve(Buffer.from(e.data.signedTx).toString('hex'))
-            }
+function base64EncodeURL(byteArray: Uint8Array) {
+    return btoa(Array.from(new Uint8Array(byteArray)).map(val => {
+        return String.fromCharCode(val);
+    }).join('')).replace(/\+/g, '-').replace(/\//g, '_').replace(/\=/g, '');
+}
+
+export async function broadcastTx(wallet: Wallet, tx: any) {
+    let a = document.createElement('a');
+    a.target = "_blank"
+    a.href = `https://pay4.best?broadcasttx=${pack(tx)}&testnet=${wallet.network === Network.TESTNET ? "true" : ''}`
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click()
+    a.remove()
+
+    const { txid: lastTxid }: any = await wallet.getLastTransaction()
+    for (let index = 0; index < 60; index++) {
+        // console.log(await wallet.getHistory("bch", 0, 1))
+        await new Promise((r, _) => setTimeout(r, 1000))
+        const { txid }: any = await wallet.getLastTransaction()
+        console.log(lastTxid, txid)
+        if (lastTxid !== txid) {
+            return txid
         }
-        walletFrame.contentWindow.postMessage({
-            Pay4BestWalletReq: {
-                UnsignedTx: data,
-            }
-        }, '*', [txChannel.port1]);
-
-
-    })
+    }
+    throw new Error("User cancel operation.")
 }

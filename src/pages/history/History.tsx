@@ -11,7 +11,6 @@ import { MarketMaker, getAtomicSwapEther, getMarketMakers } from "../../common/E
 import { getWalletClass } from "../../common/bch-wallet";
 import { HTLC } from "../../lib/HTLC";
 import { cashAddrToPkh, pkhToCashAddr } from "../../lib/common";
-import { signTx } from "../../lib/pay4best";
 import { hexToBin, parseScript } from "@bitauth/libauth";
 import { confirmOperation, showLoading, wrapOperation } from "../../utils/operation";
 import { useStore } from "../../common/store";

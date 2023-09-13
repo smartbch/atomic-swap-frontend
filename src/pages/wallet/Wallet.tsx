@@ -7,7 +7,7 @@ import { copyText, showLoading, wrapOperation } from "../../utils/operation";
 import { useStore } from "../../common/store";
 import { SendRequest } from "mainnet-js";
 import { createUnsignedTx } from "../../lib/common";
-import { signTx } from "../../lib/pay4best";
+import { broadcastTx } from "../../lib/pay4best";
 import { hexToBin } from '@bitauth/libauth';
 import TextArea from "antd/es/input/TextArea";
 import { bch2Satoshis } from "../../utils/bch";
@@ -52,8 +52,7 @@ export default function () {
         showLoading()
         const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
         const unSignedTx = await createUnsignedTx(wallet, reqList, false, { buildUnsigned: true });
-        const signedTx = await signTx(unSignedTx);
-        await wallet.submitTransaction(hexToBin(signedTx))
+        const txId = await broadcastTx(wallet, unSignedTx);
         form.resetFields()
         setStoreItem({})
     })
