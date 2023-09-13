@@ -39,13 +39,19 @@ function base64EncodeURL(byteArray: Uint8Array) {
 }
 
 export async function broadcastTx(wallet: Wallet, tx: any) {
-    let a = document.createElement('a');
-    a.target = "_blank"
-    a.href = `https://pay4.best?broadcasttx=${pack(tx)}&testnet=${wallet.network === Network.TESTNET ? "true" : ''}`
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click()
-    a.remove()
+    let pay4BestWindow
+    const href = `https://pay4.best?broadcasttx=${pack(tx)}&testnet=${wallet.network === Network.TESTNET ? "true" : ''}`
+    pay4BestWindow = window.open(href);
+    if (!pay4BestWindow) {
+        let a = document.createElement('a');
+        a.target = "_blank"
+        a.href = href
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click()
+        a.remove()
+    }
+
 
     const { txid: lastTxid }: any = await wallet.getLastTransaction()
     for (let index = 0; index < 60; index++) {
@@ -54,7 +60,11 @@ export async function broadcastTx(wallet: Wallet, tx: any) {
         const { txid }: any = await wallet.getLastTransaction()
         console.log(lastTxid, txid)
         if (lastTxid !== txid) {
+            pay4BestWindow?.close()
             return txid
+        }
+        if (pay4BestWindow && pay4BestWindow.window === null) {
+            throw new Error("You refused to sign.")
         }
     }
     throw new Error("User cancel operation.")
