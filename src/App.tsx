@@ -44,41 +44,49 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    const accountKey = `wallet-address-${CONFIG.MAINNET ? "true" : "false"}`;
-    (window as any).ethereum?.on('accountsChanged', async () => {
-      window.localStorage.removeItem(accountKey)
-      window.location.reload();
-    })
-
-    const account = localStorage.getItem(accountKey)
-    if (account) {
-      setStoreItem({ bchAccount: account })
-      return
-    }
-
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = `https://pay4.best?testnet=${!CONFIG.MAINNET ? "true" : ''}`;
-    iframe.id = "walletFrame"
-    document.body.appendChild(iframe);
-    iframe.onload = async () => {
-      try {
-        const account = await getBCHAccount()
-        localStorage.setItem(accountKey, account)
-        setStoreItem({ bchAccount: account })
-      } catch (error: any) {
-        console.log(error)
-        api["error"]({
-          message: 'getBCHAccounterror',
-          description: error.message
-        });
+    async function init() {
+      async function getAccountKey() {
+        const accountKey = `wallet-address-${CONFIG.MAINNET ? "true" : "false"}`;
+        const accounts = await (window as any).ethereum?.request({ method: 'eth_requestAccounts' })
+        return accountKey + (accounts && accounts[0] || "")
       }
-    }
 
-    const a = document.createElement("iframe");
-    a.style.display = "none";
-    a.id = "WalletFrame-Link"
-    document.body.appendChild(a);
+
+      (window as any).ethereum?.on('accountsChanged', async () => {
+        window.location.reload();
+      })
+
+      const account = localStorage.getItem(await getAccountKey())
+      if (account) {
+        setStoreItem({ bchAccount: account })
+        return
+      }
+
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = `https://pay4.best?testnet=${!CONFIG.MAINNET ? "true" : ''}`;
+      iframe.id = "walletFrame"
+      document.body.appendChild(iframe);
+      iframe.onload = async () => {
+        try {
+          const account = await getBCHAccount()
+          localStorage.setItem(await getAccountKey(), account)
+          setStoreItem({ bchAccount: account })
+        } catch (error: any) {
+          console.log(error)
+          api["error"]({
+            message: 'getBCHAccounterror',
+            description: error.message
+          });
+        }
+      }
+
+      const a = document.createElement("iframe");
+      a.style.display = "none";
+      a.id = "WalletFrame-Link"
+      document.body.appendChild(a);
+    }
+    init()
   }, [])
 
   const {
