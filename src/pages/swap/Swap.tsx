@@ -13,7 +13,7 @@ import { setupSmartBCHNetwork } from '../../common/web3';
 import { RecordStatus, insertRecord, updateRecord } from '../../common/db';
 import { getWalletClass } from '../../common/bch-wallet';
 import { bch2Satoshis } from '../../utils/bch';
-import { signTx } from '../../lib/pay4best';
+import { broadcastTx } from '../../lib/pay4best';
 import { hexToBin } from '@bitauth/libauth';
 import CONFIG from '../../CONFIG';
 import { getProvider } from '../../utils/web3';
@@ -117,8 +117,7 @@ const Swap: React.FC = () => {
             const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
             const htclBCH = new HTLC(wallet as any, marketMaker.bchLockTime, info.penaltyBPS)
             const unSignedTx = await htclBCH.lock(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), Math.round(Number(expectedPrice) * 1e8), true)
-            const signedTx = await signTx(unSignedTx);
-            const txId = await wallet.submitTransaction(hexToBin(signedTx))
+            const txId = await broadcastTx(wallet, unSignedTx);
             await updateRecord(recordId, { openTxId: txId, status: RecordStatus.New })
         }
     }, "Payment successful")

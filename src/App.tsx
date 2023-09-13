@@ -44,6 +44,18 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
+    const accountKey = `wallet-address-${CONFIG.MAINNET ? "true" : "false"}`;
+    (window as any).ethereum?.on('accountsChanged', async () => {
+      window.localStorage.removeItem(accountKey)
+      window.location.reload();
+    })
+
+    const account = localStorage.getItem(accountKey)
+    if (account) {
+      setStoreItem({ bchAccount: account })
+      return
+    }
+
     const iframe = document.createElement("iframe");
     iframe.style.display = "none";
     iframe.src = `https://pay4.best?testnet=${!CONFIG.MAINNET ? "true" : ''}`;
@@ -51,7 +63,9 @@ const App: React.FC = () => {
     document.body.appendChild(iframe);
     iframe.onload = async () => {
       try {
-        setStoreItem({ bchAccount: await getBCHAccount() })
+        const account = await getBCHAccount()
+        localStorage.setItem(accountKey, account)
+        setStoreItem({ bchAccount: account })
       } catch (error: any) {
         console.log(error)
         api["error"]({
