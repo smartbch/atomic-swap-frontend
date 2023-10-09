@@ -139,7 +139,7 @@ export default function () {
             rules={[{ required: true, message: 'bchLockTime is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="penaltyBPS" label="Penalty(‱)"
+        <Form.Item name="penaltyBPS" label="Penalty(‱)" tooltip="Penalty is a base point (x/10000), the penalty when a user maliciously initiates a swap but ends up forcing a refund."
             rules={[{ required: true, message: 'penaltyBPS is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
@@ -159,7 +159,7 @@ export default function () {
             rules={[{ required: true, message: 'maxSwapAmt is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>
-        <Form.Item name="statusChecker" label="Status checker"
+        <Form.Item name="statusChecker" label="Status checker" tooltip="A privileged evm address that can suspend the bot, users can fill in their own evm address."
             rules={[{ required: true, message: 'statusChecker is required' }]} >
             <Input disabled={hasCreated} />
         </Form.Item>

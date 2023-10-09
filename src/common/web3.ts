@@ -12,7 +12,7 @@ export async function setupSmartBCHNetwork() {
                 symbol: 'bch',
                 decimals: 18,
             },
-            rpcUrls: ["https://smartbch.grey.at"],
+            rpcUrls: ["https://rpc.smartbch.org"],
             blockExplorerUrls: [`https://www.smartscan.cash/`],
         } :
         {
@@ -23,7 +23,7 @@ export async function setupSmartBCHNetwork() {
                 symbol: 'bch',
                 decimals: 18,
             },
-            rpcUrls: ["https://rpc-testnet.smartbch.org"],//["https://smartbch.grey.at"],
+            rpcUrls: ["https://rpc-testnet.smartbch.org"],
             blockExplorerUrls: [`https://www.smartscan.cash/`],
         }
     return await setupNetwork(chain)
