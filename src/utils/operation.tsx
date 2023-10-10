@@ -27,15 +27,17 @@ export function wrapOperation(fn: any, successMsg: string = '') {
                 notification.success({ message: 'success', description: successMsg });
             }
         } catch (error: any) {
-            if(error === CONFIRM_CANCEL) {
+            if (error === CONFIRM_CANCEL) {
                 return
             }
             console.log(error)
             closeLoading()
+            let JSONRPCErrorMessage = error?.data?.message
+            JSONRPCErrorMessage = JSONRPCErrorMessage ? `: ${JSONRPCErrorMessage}` : ""
             notification.error({
                 duration: 0,
                 message: 'error',
-                description: error.message
+                description: error.message + JSONRPCErrorMessage
             });
         }
     }

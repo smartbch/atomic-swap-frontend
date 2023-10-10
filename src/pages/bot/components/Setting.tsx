@@ -56,11 +56,11 @@ export default function () {
     }, [])
 
     const onFinish = wrapOperation(async () => {
-        await confirmOperation({ content: `Registration will pledge 0.1bch and cannot initiate cross-chain transactions as a user.` })
-        showLoading()
-        const values = form.getFieldsValue()
         const atomicSwapEther = await getAtomicSwapEther()
         const MIN_STAKED_VALUE = await atomicSwapEther.MIN_STAKED_VALUE()
+        await confirmOperation({ content: `Registration will pledge ${ethers.utils.formatEther(MIN_STAKED_VALUE)}bch and cannot initiate cross-chain transactions as a user.` })
+        showLoading()
+        const values = form.getFieldsValue()
         if (!((Number(values.bchPrice) == 1 && Number(values.sbchPrice) == 1) || values.penaltyBPS == "0")) {
             throw new Error("PenaltyBPS must be equal to 0 when bchPrice and sbchPrice are not equal to 1");
         }
