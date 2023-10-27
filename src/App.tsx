@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
-import { Button, Dropdown, Layout, Menu, MenuProps, Space, notification, theme } from 'antd';
+import { Button, Dropdown, Layout, Menu, MenuProps, Space, message, notification, theme } from 'antd';
 import { Route, RouterProvider, Routes, createBrowserRouter, useNavigate } from 'react-router-dom';
 import { routes } from './common/routes';
 import { connect, getAccount, setupNetwork } from './utils/web3';
 import { setupSmartBCHNetwork } from './common/web3';
 import CONFIG from './CONFIG';
-import { getBCHAccount } from './lib/pay4best';
+import { getBCHAccount, getEVMAddress } from './lib/pay4best';
 import { useStore } from './common/store';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
+import config from './CONFIG';
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -48,7 +49,7 @@ const App: React.FC = () => {
       async function getAccountKey() {
         const accountKey = `wallet-address-${CONFIG.MAINNET ? "true" : "false"}`;
         const accounts = await (window as any).ethereum?.request({ method: 'eth_requestAccounts' })
-        return accountKey + (accounts && accounts[0] || "")
+        return accountKey + '-0-' + (accounts && accounts[0] || "")
       }
 
 
@@ -64,11 +65,21 @@ const App: React.FC = () => {
 
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
-      iframe.src = `https://pay4.best?testnet=${!CONFIG.MAINNET ? "true" : ''}`;
+      iframe.src = `${config.PAY4BEST_URL}?testnet=${!CONFIG.MAINNET ? "true" : ''}`;
       iframe.id = "walletFrame"
       document.body.appendChild(iframe);
       iframe.onload = async () => {
         try {
+          // check evm address
+          const accounts = await (window as any).ethereum?.request({ method: 'eth_requestAccounts' })
+          if (await getEVMAddress() !== accounts[0]) {
+            message.error(
+              <div>Please open <a target='_blank' href={config.PAY4BEST_URL}>PAY4BEST</a> connect to MetaMask and <a onClick={() => window.location.reload()}>reload</a> current web page </div>,
+              10000
+            );
+            return
+          }
+
           const account = await getBCHAccount()
           localStorage.setItem(await getAccountKey(), account)
           setStoreItem({ bchAccount: account })

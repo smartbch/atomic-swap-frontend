@@ -1,4 +1,5 @@
 const config = {
+    PAY4BEST_URL: "https://pay4.best",
     MAINNET: process.env.REACT_APP_MAINNET === "true",
     AtomicSwapEther_Address: ''
 }

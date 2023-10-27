@@ -8,24 +8,14 @@ import { useStore } from "../../common/store";
 import { SendRequest } from "mainnet-js";
 import { createUnsignedTx } from "../../lib/common";
 import { broadcastTx } from "../../lib/pay4best";
-import { hexToBin } from '@bitauth/libauth';
 import TextArea from "antd/es/input/TextArea";
 import { bch2Satoshis } from "../../utils/bch";
+import { isLegacyAddress } from "../../utils/address";
+import { useBalance } from "./hook";
 
 export default function () {
-    const [bchBalance, setBchBalance] = useState<string>('')
     const { state, setStoreItem } = useStore()
-
-    useEffect(() => {
-        const fetch = async () => {
-            if (!state.bchAccount) {
-                return
-            }
-            const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
-            setBchBalance(await wallet.getBalance('bch') as any)
-        }
-        fetch()
-    }, [state.bchAccount])
+    const { balance, refreshBalance } = useBalance(state.bchAccount)
 
     const [form] = Form.useForm<{ visible: boolean, addr: string, amount: number }>();
     const transferBCH = wrapOperation(async () => {
@@ -35,7 +25,7 @@ export default function () {
             if (v.trim().length == 0) {
                 return ''
             }
-            if (bchaddr.isLegacyAddress(v)) {
+            if (isLegacyAddress(v)) {
                 return bchaddr.toCashAddress(v)
             }
             if (!v.startsWith("bitcoincash:") && !v.startsWith("bchtest:")) {
@@ -55,6 +45,7 @@ export default function () {
         const txId = await broadcastTx(wallet, unSignedTx);
         form.resetFields()
         setStoreItem({})
+        refreshBalance()
     })
 
     if (!state.bchAccount) {
@@ -62,7 +53,7 @@ export default function () {
     }
     console.log(form.getFieldsValue().visible)
     return <div style={{ width: 1000, margin: "0 auto", marginTop: 50, fontSize: 20 }}>
-        <div>Bch Balance:  {bchBalance} <Button type="primary" style={{ marginLeft: 20 }} onClick={() => { form.setFieldsValue({ visible: true }); setStoreItem({}) }}>Send</Button></div>
+        <div>Bch Balance:  {balance} <Button type="primary" style={{ marginLeft: 20 }} onClick={() => { form.setFieldsValue({ visible: true }); setStoreItem({}) }}>Send</Button></div>
         <div style={{ marginTop: 20 }}>Cash Address: {state.bchAccount}
             <CopyOutlined style={{ cursor: "pointer", fontSize: 20, marginLeft: 10 }} onClick={() => copyText(state.bchAccount)} />
         </div>
