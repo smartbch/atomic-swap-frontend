@@ -1,5 +1,6 @@
 import { Network, Wallet } from "mainnet-js";
 import { decode, encode } from "algo-msgpack-with-bigint";
+import config from "../CONFIG";
 
 export async function getBCHAccount(): Promise<string> {
     console.log('getBCHAccount...');
@@ -28,6 +29,31 @@ export async function getBCHAccount(): Promise<string> {
     return account
 }
 
+export async function getEVMAddress(): Promise<string> {
+    console.log('getBCHAccount...');
+    const account: any = await new Promise((r, reject) => {
+        const getAccount = () => {
+            const walletFrame: any = document.getElementById('walletFrame');
+            const addrChannel = new MessageChannel();
+            addrChannel.port2.onmessage = function (e) {
+                if (e.data === 'GetEvmAddr-error') {
+                    reject("GetEvmAddr-error")
+                    return
+                }
+                r(e.data)
+            }
+            walletFrame.contentWindow.postMessage({
+                Pay4BestWalletReq: {
+                    GetEvmAddr: true,
+                }
+            }, '*', [addrChannel.port1]);
+        }
+
+        getAccount()
+    })
+    return account
+}
+
 function pack(tx: any) {
     return base64EncodeURL(encode(tx))
 }
@@ -40,7 +66,7 @@ function base64EncodeURL(byteArray: Uint8Array) {
 
 export async function broadcastTx(wallet: Wallet, tx: any) {
     let pay4BestWindow
-    const href = `https://pay4.best?broadcasttx=${pack(tx)}&testnet=${wallet.network === Network.TESTNET ? "true" : ''}`
+    const href = `${config.PAY4BEST_URL}?broadcasttx=${pack(tx)}&testnet=${wallet.network === Network.TESTNET ? "true" : ''}`
     pay4BestWindow = window.open(href);
     if (!pay4BestWindow) {
         let a = document.createElement('a');
@@ -53,15 +79,17 @@ export async function broadcastTx(wallet: Wallet, tx: any) {
     }
 
 
-    const { txid: lastTxid }: any = await wallet.getLastTransaction()
+    const txs = await (wallet.getNetworkProvider() as any).performRequest("blockchain.address.get_history", wallet.address!)
+    const txOldIds: string[] = txs.map((x: any) => x.tx_hash)
     for (let index = 0; index < 60; index++) {
-        // console.log(await wallet.getHistory("bch", 0, 1))
         await new Promise((r, _) => setTimeout(r, 1000))
-        const { txid }: any = await wallet.getLastTransaction()
-        console.log(lastTxid, txid)
-        if (lastTxid !== txid) {
+        const txs = await (wallet.getNetworkProvider() as any).performRequest("blockchain.address.get_history", wallet.address!)
+        const txNewIds: string[] = txs.map((x: any) => x.tx_hash)
+        let newTxid = (txNewIds as any).findLast((id: string) => !txOldIds.includes(id))
+        if (newTxid) {
             pay4BestWindow?.close()
-            return txid
+            console.log("txId: ", newTxid)
+            return newTxid
         }
         if (pay4BestWindow && pay4BestWindow.window === null) {
             throw new Error("You refused to sign.")
