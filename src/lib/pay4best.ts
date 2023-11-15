@@ -79,11 +79,11 @@ export async function broadcastTx(wallet: Wallet, tx: any) {
     }
 
 
-    const txs = await (wallet.getNetworkProvider() as any).performRequest("blockchain.address.get_history", wallet.address!)
+    const txs = await wallet.provider!.performRequest("blockchain.address.get_history", wallet.address!)
     const txOldIds: string[] = txs.map((x: any) => x.tx_hash)
     for (let index = 0; index < 60; index++) {
         await new Promise((r, _) => setTimeout(r, 1000))
-        const txs = await (wallet.getNetworkProvider() as any).performRequest("blockchain.address.get_history", wallet.address!)
+        const txs = await wallet.provider!.performRequest("blockchain.address.get_history", wallet.address!)
         const txNewIds: string[] = txs.map((x: any) => x.tx_hash)
         let newTxid = (txNewIds as any).findLast((id: string) => !txOldIds.includes(id))
         if (newTxid) {

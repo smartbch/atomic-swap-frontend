@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { getWalletClass } from "../../common/bch-wallet";
+import { getWalletClass } from "../../../common/bch-wallet";
 
 export const useBalance = (address: string) => {
     const [balance, setBalance] = useState("");

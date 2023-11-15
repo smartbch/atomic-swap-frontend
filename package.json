@@ -28,7 +28,9 @@
     "vue-buffer": "^0.0.1",
     "web-vitals": "^2.1.4",
     "zustand": "^4.3.8",
-    "algo-msgpack-with-bigint": "^2.1.1"
+    "algo-msgpack-with-bigint": "^2.1.1",
+    "libcrc721": "^0.1.1",
+    "dexie": "^3.2.4"
   },
   "scripts": {
     "start": "cross-env REACT_APP_MAINNET=true react-app-rewired start",
