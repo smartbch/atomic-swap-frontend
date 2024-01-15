@@ -39,7 +39,7 @@ function concatExplorerUrlForTx(txId: string) {
 function concatExplorerUrlForBlockHeight(blockHeight: string) {
     return config.MAINNET
         ? mainnetExplorer + '/block-height/' + blockHeight
-        : testnetExplorer + '/block/' + blockHeight;
+        : testnetExplorer + '/block-height/' + blockHeight;
 }
 
 function tokenChangesToString(tokenChanges: ITokenChange[]): string {
@@ -79,14 +79,14 @@ const columns: ColumnsType<IHistoryDataRow> = [
     {
         title: 'Block Height',
         dataIndex: 'blockHeight',
-        width: '20%',
+        width: '15%',
         render: (blockHeight) => <a target="_blank" href={concatExplorerUrlForBlockHeight(blockHeight)}>{blockHeight}</a>,
 
     },
     {
         title: 'BCH Change',
         dataIndex: 'valueChange',
-        width: '20%',
+        width: '15%',
     },
     {
         title: 'Token Change',

@@ -39,19 +39,25 @@ async function syncBch2SbchRecord(record: SwapRecord) {
     const utxos = await bchContract.getUtxos()
     const utxo = utxos[0]
 
-    const createAt = record.info.createAt
-    const now = new Date().getTime()
-    const expiredTime = createAt + record.marketMaker.bchLockTime * (60 * 10) * 1000 + 5 * 60 * 1000
-    if (utxo && now > expiredTime) { // 多5min
-        await updateRecord(record.id, { status: RecordStatus.Expired })
-        record.status = RecordStatus.Expired
-        return record
+    let confirmations = 0
+    try {
+        const provider = await wallet.getNetworkProvider(wallet.network)
+        const res = await provider.getRawTransactionObject(record.openTxId)
+        confirmations = res.confirmations || 0
+        if (utxo && confirmations >= record.marketMaker.bchLockTime) {
+            await updateRecord(record.id, { status: RecordStatus.Expired })
+            record.status = RecordStatus.Expired
+            return record
+        }
+        if (utxo && confirmations >= Math.floor(record.marketMaker.bchLockTime / 2)) {
+            await updateRecord(record.id, { status: RecordStatus.WaitingToExpire })
+            record.status = RecordStatus.WaitingToExpire
+            return record
+        }
+    } catch (error) {
+        console.log(error)
     }
-    if (utxo && now < expiredTime && now > createAt + record.marketMaker.bchLockTime * (60 * 10) * 1000 / 2) {
-        await updateRecord(record.id, { status: RecordStatus.WaitingToExpire })
-        record.status = RecordStatus.WaitingToExpire
-        return record
-    }
+
     if (!utxo) {
         const wallet_ = await getWalletClass().fromCashaddr(bchContract.getDepositAddress())
         const latestTx = await wallet_.getLastTransaction()
@@ -63,6 +69,8 @@ async function syncBch2SbchRecord(record: SwapRecord) {
         }
     }
 
+    const now = new Date().getTime()
+    const createAt = record.info.createAt
     if ([RecordStatus.Prepare].includes(record.status) && !utxo && now > createAt + 60 * 1000) {
         await updateRecord(record.id, { status: RecordStatus.Invalid })
         record.status = RecordStatus.Invalid
