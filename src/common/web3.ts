@@ -13,7 +13,7 @@ export async function setupSmartBCHNetwork() {
                 decimals: 18,
             },
             rpcUrls: ["https://rpc.smartbch.org"],
-            blockExplorerUrls: [`https://www.smartscan.cash/`],
+            blockExplorerUrls: [`https://www.smartscout.cash/`],
         } :
         {
             chainName: "smartBCH",
@@ -24,7 +24,7 @@ export async function setupSmartBCHNetwork() {
                 decimals: 18,
             },
             rpcUrls: ["https://rpc-testnet.smartbch.org"],
-            blockExplorerUrls: [`https://www.smartscan.cash/`],
+            blockExplorerUrls: [`https://www.smartscout.cash/`],
         }
     return await setupNetwork(chain)
 }

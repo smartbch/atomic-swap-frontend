@@ -179,7 +179,7 @@ export default function () {
 
     const getTxUrl = (record: SwapRecord) => {
         if (record.direction === SwapDriection.Sbch2Bch) {
-            return "https://www.smartscan.cash/transaction/" + record.openTxId
+            return "https://www.smartscout.cash/tx/" + record.openTxId
         }
         return (CONFIG.MAINNET ? "https://blockchair.com/bitcoin-cash/transaction/" : "https://chipnet.imaginary.cash/tx/") + record.openTxId;
     }
