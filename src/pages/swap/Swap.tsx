@@ -13,12 +13,12 @@ import { setupSmartBCHNetwork } from '../../common/web3';
 import { RecordStatus, insertRecord, updateRecord } from '../../common/db';
 import { getWalletClass } from '../../common/bch-wallet';
 import { bch2Satoshis } from '../../utils/bch';
-import { broadcastTx } from '../../lib/pay4best';
 import { hexToBin } from '@bitauth/libauth';
 import CONFIG from '../../CONFIG';
 import { getProvider } from '../../utils/web3';
 import { useStore } from '../../common/store';
 import toPrecision from '../../utils/precision';
+import { broadcastTx } from '../../utils/wallet';
 
 type BotMarketMaker = MarketMaker & { BCHBalance: string, SBCHBalance: string }
 
@@ -94,7 +94,8 @@ const Swap: React.FC = () => {
             expectedPrice,
             secret, createAt: new Date().getTime(),
             marketMakerAddr: marketMaker.addr, marketMakerBchPkh: marketMaker.bchPkh,
-            amount: ethers.utils.parseEther(values.amount.toString()).toString(), walletPkh, penaltyBPS: marketMaker.penaltyBPS
+            amount: ethers.utils.parseEther(values.amount.toString()).toString(), walletPkh, penaltyBPS: marketMaker.penaltyBPS,
+            evmAddr: state.account
         }
         let recordId: number = 0
         if (values.direction === SwapDriection.Sbch2Bch) {
@@ -117,7 +118,7 @@ const Swap: React.FC = () => {
             const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
             const htclBCH = new HTLC(wallet as any, marketMaker.bchLockTime, info.penaltyBPS)
             const unSignedTx = await htclBCH.lock(pkhToCashAddr(recipientPkh, wallet.network), state.account, hashLock, Number(bch2Satoshis(values.amount)), Math.round(Number(expectedPrice) * 1e8), true)
-            const txId = await broadcastTx(wallet, unSignedTx);
+            const txId = await broadcastTx(wallet, state.snapId, unSignedTx);
             await updateRecord(recordId, { openTxId: txId, status: RecordStatus.New })
         }
     }, "Payment successful")

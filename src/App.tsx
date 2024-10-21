@@ -9,12 +9,16 @@ import { getBCHAccount, getEVMAddress } from './lib/pay4best';
 import { useStore } from './common/store';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 import config from './CONFIG';
+import { connectSnap, getSnap } from './utils/snap/connect';
+import { getAddress } from './utils/snap/rpc';
 
 const { Header, Content, Footer, Sider } = Layout;
 
 const App: React.FC = () => {
   const [api, contextHolder] = notification.useNotification();
   const { state, setStoreItem } = useStore()
+  const WALLET_KEY = "WALLET"
+  const walletType = localStorage.getItem(WALLET_KEY) as any || "SNAP"
 
   useEffect(() => {
     if (window.location.pathname.includes("/chipnet/") && window.location.pathname !== "/chipnet" && window.location.pathname !== "/chipnet/") {
@@ -46,16 +50,23 @@ const App: React.FC = () => {
 
   useEffect(() => {
     async function init() {
+      (window as any).ethereum?.on('accountsChanged', async () => {
+        window.location.reload();
+      })
+
+      if (walletType === "SNAP") {
+        await connect()
+        const snapId = await connectSnap()
+        const bchAccount = await getAddress(snapId!)
+        setStoreItem({ snapId, bchAccount })
+        return
+      }
+
       async function getAccountKey() {
         const accountKey = `wallet-address-${CONFIG.MAINNET ? "true" : "false"}`;
         const accounts = await (window as any).ethereum?.request({ method: 'eth_requestAccounts' })
         return accountKey + '-0-' + (accounts && accounts[0] || "")
       }
-
-
-      (window as any).ethereum?.on('accountsChanged', async () => {
-        window.location.reload();
-      })
 
       const account = localStorage.getItem(await getAccountKey())
       if (account) {
@@ -132,6 +143,26 @@ const App: React.FC = () => {
       ),
     }
   ]
+
+  const walletItems: MenuProps['items'] = [
+    walletType === "SNAP" ? {
+      key: '1',
+      label: (
+        <a target="_self" onClick={() => { localStorage.setItem(WALLET_KEY, "PAY4BEST"); window.location.reload() }} rel="noopener noreferrer" >
+          PAY4BEST
+        </a>
+      ),
+    } :
+      {
+        key: '2',
+        label: (
+          <a target="_self" onClick={() => { localStorage.setItem(WALLET_KEY, "SNAP"); window.location.reload() }} rel="noopener noreferrer">
+            SNAP
+          </a>
+        ),
+      }
+  ]
+
   if (!state.account) {
     return <Button onClick={() => connect().then(() => window.location.reload())}>Connect Wallet</Button>
   }
@@ -150,6 +181,7 @@ const App: React.FC = () => {
           />
           <div style={{ flex: 1 }} />
           <Button type="link" style={{ marginRight: 20 }}> {state.account}</Button>
+
           <Dropdown menu={{ items }}>
             <a onClick={(e) => e.preventDefault()}>
               <Space>
@@ -158,6 +190,16 @@ const App: React.FC = () => {
               </Space>
             </a>
           </Dropdown>
+          <div style={{ width: 20 }} />
+          <Dropdown menu={{ items: walletItems }}>
+            <a onClick={(e) => e.preventDefault()}>
+              <Space>
+                {walletType}
+                <DownOutlined />
+              </Space>
+            </a>
+          </Dropdown>
+
         </Header>
 
         <Content style={{ minHeight: "calc(100vh - 150px)", background: colorBgContainer, padding: '0 50px' }} >

@@ -7,11 +7,11 @@ import { copyText, showLoading, wrapOperation } from "../../../utils/operation";
 import { useStore } from "../../../common/store";
 import { SendRequest } from "mainnet-js";
 import { createUnsignedTx } from "../../../lib/common";
-import { broadcastTx } from "../../../lib/pay4best";
 import TextArea from "antd/es/input/TextArea";
 import { bch2Satoshis } from "../../../utils/bch";
 import { isLegacyAddress } from "../../../utils/address";
 import { useBalance } from "../hooks/hook";
+import { broadcastTx } from "../../../utils/wallet";
 
 export default function () {
     const { state, setStoreItem } = useStore()
@@ -42,7 +42,7 @@ export default function () {
         showLoading()
         const wallet = await getWalletClass().fromCashaddr(state.bchAccount)
         const unSignedTx = await createUnsignedTx(wallet, reqList, false, { buildUnsigned: true });
-        const txId = await broadcastTx(wallet, unSignedTx);
+        const txId = await broadcastTx(wallet, state.snapId, unSignedTx);
         form.resetFields()
         setStoreItem({})
         refreshBalance()
