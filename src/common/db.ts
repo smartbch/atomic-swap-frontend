@@ -51,7 +51,8 @@ export interface SwapRecord {
         amount: string,
         createAt: number,
         walletPkh: string,
-        expectedPrice: string
+        expectedPrice: string,
+        evmAddr: string
     },
     error?: string
 }

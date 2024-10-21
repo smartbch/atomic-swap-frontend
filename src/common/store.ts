@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 interface Store {
+    snapId: string,
     bchAccount: string,
     account: string,
     chainId: number,

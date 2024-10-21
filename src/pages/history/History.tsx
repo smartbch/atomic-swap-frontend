@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getAccount } from "../../utils/web3";
 import { RecordStatus, SwapRecord, queryRecords, queryRecordsLength, updateRecord } from "../../common/db";
 import Table, { ColumnsType } from "antd/es/table";
-import { Space, notification } from "antd";
+import { Space, Tooltip, notification } from "antd";
 import { ethers } from "ethers";
 import { changeTimestampToDataFormat } from "../../utils/date";
 import { syncRecord } from "./sync-record";
@@ -121,6 +121,14 @@ export default function () {
             title: 'Create Time',
             key: 'createAt',
             render: (_, record) => changeTimestampToDataFormat(record.info.createAt),
+        },
+        {
+            title: 'EVM Address',
+            key: 'evmAddr',
+            width: 150,
+            render: (record) => <Tooltip placement="topLeft" title={record.info?.evmAddr}>
+                <a>{record.info?.evmAddr?.slice(0, 10)}</a>
+            </Tooltip>
         },
         {
             title: 'Action',
